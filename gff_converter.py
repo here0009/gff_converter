@@ -1,28 +1,21 @@
-#! /usr/env/bin
+#!/usr/bin/env python3
 import sys
-import os
 
 
 gff_file = sys.argv[1]
 out_file = sys.argv[2]
-gff_type = sys.argv[3].upper()
+assembly_report_file = sys.argv[3]
+gff_type = sys.argv[4].upper()
+assert gff_type in {'ENSEMBLE', 'NCBI'}
+SELECTED_TYPES = {'mRNA':'mRNA'}  # col3 : col8 ID_type
+SELECTED_SUB_TYPES = {'CDS':'CDS', 'intron':'intron', 'five_prime_UTR':'5_UTR', 'three_prime_UTR':'3_UTR'}
+SELECTED_ATTRIBUTES = {'mRNA':['ID','Name'], 'CDS':['Parent'], 'intron':['Parent'], 'five_prime_UTR':['Parent'], 'three_prime_UTR':['Parent'], 'exon':['Parent']}
+NO_INTRON = True  # did the gff file include intron
 if gff_type == 'ENSEMBLE':
-    SELECTED_TYPES = {'mRNA'}  # col3 : col8 ID_type
-    SELECTED_SUB_TYPES = {'CDS', 'intron', 'five_prime_UTR', 'three_prime_UTR'}
-    SELECTED_ATTRIBUTES = {'mRNA':['ID','Name'], 'CDS':['Parent'], 'intron':['Parent'], 'five_prime_UTR':['Parent'], 'three_prime_UTR':['Parent'], 'exon':['Parent']}
     ATRB_ID_SEP = ':'  # e.g. ID=transcript:ENST00000423372;Parent=gene:ENSG00000237683
 elif gff_type == 'NCBI':
-    SELECTED_TYPES = {'mRNA'}
-    SELECTED_SUB_TYPES = {'CDS', 'intron', 'five_prime_UTR', 'three_prime_UTR'}
-    SELECTED_ATTRIBUTES = ['ID', 'Parent']
     ATRB_ID_SEP = '-' # e.g. ID=exon-NM_001005277.1-1;Parent=rna-NM_001005277.1
-# assembly_report_file = sys.argv[4]
 
-
-# class GffTrans:
-#     """
-#     Tran
-#     """
 
 class GffAttributes:
     """
@@ -75,76 +68,99 @@ class GffRecord:
         self.parent = self.attributes.atrb_dict.get('Parent', None)
         self.name = self.attributes.atrb_dict.get('Name', None)
         
-    
     def __str__(self):
         return self.string
     
     def __repr__(self):
         return self.string
-    
-    def convert_id(self):
-        return 'chr' + self.seqid
-    
+        
     def convert(self):
-        return  GffRecord('\t'.join([self.convert_id(), self.source, self.type, self.start, self.end, self.score, self.strand, self.phase, self.attributes.trimm_atrb(self.type).string]))
+        convert_seqid = seqid_trans_dict[self.seqid]
+        convert_type = self.type
+        convert_atrb = self.attributes.trimm_atrb(self.type).string
+        if self.type in SELECTED_TYPES:
+            convert_type = SELECTED_TYPES[self.type]
+        elif self.type in SELECTED_SUB_TYPES:
+            convert_type = SELECTED_SUB_TYPES[self.type]
+        return  GffRecord('\t'.join([convert_seqid, self.source, convert_type, self.start, self.end, self.score, self.strand, self.phase, convert_atrb]))
 
 
-limits = 10000
+def seqid_conversion(assembly_report_file, gff_type):
+    """
+    return seqid_conversion dict based on assembly report file
+    gff_type includs ESEMBLE AND NCBI
+    """
+    input_fhand = open(assembly_report_file)
+    chroms = set([str(i) for i in range(1, 24)]) | set(['X', 'Y', 'MT'])
+    refseq_to_ucsc = dict()
+    genbank_to_ucsc = dict()
+    for line in input_fhand:
+        if line.startswith('#'):
+            continue
+        lst = line.strip().split('\t')
+        seqid, refseq, genbank, ucsc = lst[0], lst[4], lst[6], lst[9]
+        if seqid in chroms:
+            genbank_to_ucsc[seqid] = ucsc
+        else:
+            genbank_to_ucsc[refseq] = ucsc
+        refseq_to_ucsc[genbank] = ucsc
+    if gff_type == 'ENSEMBLE':
+        return genbank_to_ucsc
+    elif gff_type == 'NCBI':
+        return refseq_to_ucsc
+
+
+seqid_trans_dict = seqid_conversion(assembly_report_file, gff_type)
 line_counts = 0
 seq_counts = 0
 gff_records = []
 pre_id = None
+input_fhand = open(gff_file)
 output_fhand = open(out_file, 'w')
 pre_exon_record = None
-with open(gff_file) as fhand:
-    
-    for line in fhand:
-        if not line or line.startswith('#'):
-            continue
-        curr_record = GffRecord(line)
-        # print(pre_id, curr_record)
-        if curr_record.id and (curr_record.type in SELECTED_TYPES):
-            pre_id = curr_record.id
+
+for line in input_fhand:
+    if not line or line.startswith('#'):
+        continue
+    curr_record = GffRecord(line)
+    if curr_record.id and (curr_record.type in SELECTED_TYPES):
+        pre_id = curr_record.id
+        curr_record = curr_record.convert()
+        if gff_records:
+            for _record in gff_records:
+                gff_records.sort(key = lambda x : int(x.start))
+                output_fhand.write(_record.string + '\n')
+                line_counts += 1
+        gff_records = []
+        if seq_counts != 0:
+            output_fhand.write('\n')
+        output_fhand.write(curr_record.string + '\n') # seperate line
+        seq_counts += 1
+        line_counts += 1
+    elif curr_record.parent == pre_id:
+        if curr_record.type in SELECTED_SUB_TYPES:
             curr_record = curr_record.convert()
-            # print(curr_record, gff_records)
-            if gff_records:
-                for _record in gff_records:
-                    gff_records.sort(key = lambda x : int(x.start))
-                    output_fhand.write(_record.string + '\n')
-            gff_records = []
-            if seq_counts != 0:
-                output_fhand.write('\n')
-            output_fhand.write(curr_record.string + '\n') # seperate line
-            seq_counts += 1
-            line_counts += 1
-        elif curr_record.parent == pre_id:
-            if curr_record.type in SELECTED_SUB_TYPES:
-                curr_record = curr_record.convert()
-                # print('selected sub feature', curr_record)
-                gff_records.append(curr_record)
-                line_counts += 1
-            elif curr_record.type == 'exon':
-                curr_record = curr_record.convert()
-                # print('pre:', pre_exon_record)
-                # print('curr:', curr_record)
-                if pre_exon_record is not None and  pre_exon_record.type == 'exon' and curr_record.parent != None and curr_record.parent == pre_exon_record.parent:  # add intron record
-                    _start = str(int(pre_exon_record.end) + 1)
-                    _end = str(int(curr_record.start) - 1)
-                    _atrb = f'Parent={curr_record.parent}'
-                    # print('start', 'end', 'atrb', _start, _end, _atrb, _end >= _start)
-                    if int(_end) >= int(_start):  # do not forget use int for comparision
-                        # output_fhand.write('\t'.join([curr_record.seqid, curr_record.source, 'intron', _start, _end, '.', curr_record.strand, '.', _atrb]) + '\n')
-                        gff_records.append(GffRecord('\t'.join([curr_record.seqid, curr_record.source, 'intron', _start, _end, '.', curr_record.strand, '.', _atrb])))
-                pre_exon_record = curr_record
-                line_counts += 1
-    # if line_counts > limits:
-    #     break
+            gff_records.append(curr_record)
+
+        elif NO_INTRON and curr_record.type == 'exon':
+            curr_record = curr_record.convert()
+            if pre_exon_record is not None and  pre_exon_record.type == 'exon' and curr_record.parent != None and curr_record.parent == pre_exon_record.parent:  # add intron record
+                _start = str(int(pre_exon_record.end) + 1)
+                _end = str(int(curr_record.start) - 1)
+                _atrb = f'Parent={curr_record.parent}'
+                if int(_end) >= int(_start):  # do not forget use int for comparision
+                    gff_records.append(GffRecord('\t'.join([curr_record.seqid, curr_record.source, 'intron', _start, _end, '.', curr_record.strand, '.', _atrb])))
+            pre_exon_record = curr_record
 
 if gff_records:
     gff_records.sort(key = lambda x : int(x.start))
     for _record in gff_records:
-        # print(_record.string)
         output_fhand.write(_record.string + '\n')
+        line_counts += 1
+
 output_fhand.write('\n')
-print (f"Written total {seq_counts} seqs {line_counts} records")
 output_fhand.close()
+input_fhand.close()
+print (f"Written total {seq_counts} seqs and {line_counts} lines")
+
+
