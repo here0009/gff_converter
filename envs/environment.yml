@@ -1,0 +1,11 @@
+name: gfftools
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - python
+  - r-base
+  - r-essentials
+  - bioconductor-biomart
+  - genometools-genometools
