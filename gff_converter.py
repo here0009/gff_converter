@@ -1,17 +1,25 @@
 #!/usr/bin/env python3
+"""
+Input:
+Output:
+Usage:
+    python3 gff_converter.py <input_file> <output_file> <assembly report> <gff_file_type>
+Example: 
+    python3 gff_converter.py ncbi_test.gff ncbi_test_out.gff data/GCF_000001405.25_GRCh37.p13_assembly_report.txt NCBI
+"""
 import sys
-
+from GFF import GffRecord, GffAttributes
 
 gff_file = sys.argv[1]
 out_file = sys.argv[2]
 assembly_report_file = sys.argv[3]
 gff_type = sys.argv[4].upper()
-assert gff_type in {'ENSEMBLE', 'NCBI'}
-SELECTED_TYPES = {'mRNA':'mRNA'}  # col3 : col8 ID_type
-SELECTED_SUB_TYPES = {'CDS':'CDS', 'intron':'intron', 'five_prime_UTR':'5_UTR', 'three_prime_UTR':'3_UTR'}
-SELECTED_ATTRIBUTES = {'mRNA':['ID','Name'], 'CDS':['Parent'], 'intron':['Parent'], 'five_prime_UTR':['Parent'], 'three_prime_UTR':['Parent'], 'exon':['Parent']}
+assert gff_type in {'ENSEMBL', 'NCBI'}
 NO_INTRON = True  # did the gff file include intron
-if gff_type == 'ENSEMBLE':
+SELECTED_TYPES = {'mRNA':'mRNA', 'transcript':'transcript'}  # col3 : col8 ID_type
+SELECTED_SUB_TYPES = {'CDS':'CDS', 'intron':'intron', 'five_prime_UTR':'5_UTR', 'three_prime_UTR':'3_UTR'}
+SELECTED_ATTRIBUTES = {'mRNA':['ID','Name', 'Parent'], 'transcript':['ID','Name', 'Parent'], 'CDS':['Parent'], 'intron':['Parent'], 'five_prime_UTR':['Parent'], 'three_prime_UTR':['Parent'], 'exon':['Parent']}
+if gff_type == 'ENSEMBL':
     ATRB_ID_SEP = ':'  # e.g. ID=transcript:ENST00000423372;Parent=gene:ENSG00000237683
 elif gff_type == 'NCBI':
     ATRB_ID_SEP = '-' # e.g. ID=exon-NM_001005277.1-1;Parent=rna-NM_001005277.1
@@ -21,12 +29,15 @@ class GffAttributes:
     """
     attributes for gff record
     """
-    def __init__(self,  attributes):
+    def __init__(self,  attributes, gff_type):
         self.string = attributes
+        self.gff_type = gff_type
         self.atrb_dict = {}
         if self.string != '':
             self._lst = attributes.split(';')
             for _atrb in self._lst:
+                if '=' not in _atrb:
+                    continue
                 _key, _val = _atrb.split('=')
                 self.atrb_dict[_key] = _val
     
@@ -35,8 +46,13 @@ class GffAttributes:
     
     def trimm_atrb(self, feature):
         if feature not in SELECTED_ATTRIBUTES:
-            return GffAttributes('')
+            return GffAttributes('', gff_type)
         res = []
+        if self.gff_type == 'NCBI' and feature in SELECTED_TYPES: # use the gene name if got one
+            if  'Parent' != 'None':
+                self.atrb_dict['Name'] = self.atrb_dict['Parent']
+                del self.atrb_dict['Parent']
+
         for k in SELECTED_ATTRIBUTES[feature]:
             if k in self.atrb_dict:
                 v = self.atrb_dict[k]
@@ -44,7 +60,7 @@ class GffAttributes:
                 if idx != -1:
                     v = v[idx + 1:]
                 res.append(f'{k}={v}')
-        return GffAttributes(';'.join(res))
+        return GffAttributes(';'.join(res), gff_type)
 
 
 class GffRecord:
@@ -52,7 +68,7 @@ class GffRecord:
     gff record got 8 cols:
     seqid source type start end score strand phase attributes
     """
-    def __init__(self, records):
+    def __init__(self, records, gff_type):
         self.string = records
         self.records = records.strip().split('\t')
         self.seqid = self.records[0]
@@ -63,11 +79,11 @@ class GffRecord:
         self.score = self.records[5]
         self.strand = self.records[6]
         self.phase = self.records[7] 
-        self.attributes = GffAttributes(self.records[8])
+        self.attributes = GffAttributes(self.records[8], gff_type)
         self.id = self.attributes.atrb_dict.get('ID', None)
         self.parent = self.attributes.atrb_dict.get('Parent', None)
         self.name = self.attributes.atrb_dict.get('Name', None)
-        
+
     def __str__(self):
         return self.string
     
@@ -82,7 +98,7 @@ class GffRecord:
             convert_type = SELECTED_TYPES[self.type]
         elif self.type in SELECTED_SUB_TYPES:
             convert_type = SELECTED_SUB_TYPES[self.type]
-        return  GffRecord('\t'.join([convert_seqid, self.source, convert_type, self.start, self.end, self.score, self.strand, self.phase, convert_atrb]))
+        return  GffRecord('\t'.join([convert_seqid, self.source, convert_type, self.start, self.end, self.score, self.strand, self.phase, convert_atrb]), gff_type)
 
 
 def seqid_conversion(assembly_report_file, gff_type):
@@ -104,7 +120,7 @@ def seqid_conversion(assembly_report_file, gff_type):
         else:
             genbank_to_ucsc[refseq] = ucsc
         refseq_to_ucsc[genbank] = ucsc
-    if gff_type == 'ENSEMBLE':
+    if gff_type == 'ENSEMBL':
         return genbank_to_ucsc
     elif gff_type == 'NCBI':
         return refseq_to_ucsc
@@ -122,7 +138,7 @@ pre_exon_record = None
 for line in input_fhand:
     if not line or line.startswith('#'):
         continue
-    curr_record = GffRecord(line)
+    curr_record = GffRecord(line, gff_type)
     if curr_record.id and (curr_record.type in SELECTED_TYPES):
         pre_id = curr_record.id
         curr_record = curr_record.convert()
@@ -149,7 +165,7 @@ for line in input_fhand:
                 _end = str(int(curr_record.start) - 1)
                 _atrb = f'Parent={curr_record.parent}'
                 if int(_end) >= int(_start):  # do not forget use int for comparision
-                    gff_records.append(GffRecord('\t'.join([curr_record.seqid, curr_record.source, 'intron', _start, _end, '.', curr_record.strand, '.', _atrb])))
+                    gff_records.append(GffRecord('\t'.join([curr_record.seqid, curr_record.source, 'intron', _start, _end, '.', curr_record.strand, '.', _atrb]), gff_type))
             pre_exon_record = curr_record
 
 if gff_records:
