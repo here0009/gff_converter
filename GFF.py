@@ -11,10 +11,13 @@ class GffAttributes:
     """
     def __init__(self,  attributes, gff_type):
         self.string = attributes
+        self.gff_type = gff_type
         self.atrb_dict = {}
         if self.string != '':
             self._lst = attributes.split(';')
             for _atrb in self._lst:
+                if '=' not in _atrb:
+                    continue
                 _key, _val = _atrb.split('=')
                 self.atrb_dict[_key] = _val
         if gff_type == 'ENSEMBL':
@@ -36,7 +39,7 @@ class GffAttributes:
                 if idx != -1:
                     v = v[idx + 1:]
                 res.append(f'{k}={v}')
-        return GffAttributes(';'.join(res))
+        return GffAttributes(';'.join(res), self.gff_type)
 
 
 class GffRecord:
