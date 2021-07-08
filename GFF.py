@@ -1,9 +1,11 @@
+#!/usr/bin/env python3
+"""
+Classes and Parameters for GFF conversion
+"""
 
-NO_INTRON = True  # did the gff file include intron
 SELECTED_TYPES = {'mRNA':'mRNA', 'transcript':'transcript'}  # col3 : col8 ID_type
 SELECTED_SUB_TYPES = {'CDS':'CDS', 'intron':'intron', 'five_prime_UTR':'5_UTR', 'three_prime_UTR':'3_UTR'}
-SELECTED_ATTRIBUTES = {'mRNA':['ID','Name'], 'transcript':['ID','Name'], 'CDS':['Parent'], 'intron':['Parent'], 'five_prime_UTR':['Parent'], 'three_prime_UTR':['Parent'], 'exon':['Parent']}
-
+SELECTED_ATTRIBUTES = {'mRNA':['ID','Name', 'Parent'], 'transcript':['ID','Name', 'Parent'], 'CDS':['Parent'], 'intron':['Parent'], 'five_prime_UTR':['Parent'], 'three_prime_UTR':['Parent'], 'exon':['Parent']}
 
 class GffAttributes:
     """
@@ -20,18 +22,22 @@ class GffAttributes:
                     continue
                 _key, _val = _atrb.split('=')
                 self.atrb_dict[_key] = _val
-        if gff_type == 'ENSEMBL':
+        if self.gff_type == 'ENSEMBL':
             self.atrb_id_sep = ':'  # e.g. ID=transcript:ENST00000423372;Parent=gene:ENSG00000237683
-        elif gff_type == 'NCBI':
+        elif self.gff_type == 'NCBI':
             self.atrb_id_sep = '-' # e.g. ID=exon-NM_001005277.1-1;Parent=rna-NM_001005277.1
     
     def __str__(self):
         return ';'.join([f'{k}={v}'for k, v in self.atrb_dict.items()])
     
-    def trimm_atrb(self, feature, ATRB_ID_SEP):
+    def trimm_atrb(self, feature):
         if feature not in SELECTED_ATTRIBUTES:
-            return GffAttributes('')
+            return GffAttributes('', self.gff_type)
         res = []
+        if self.gff_type == 'NCBI' and feature in SELECTED_TYPES: # use the gene name if got one
+            if  'Parent' != 'None':
+                self.atrb_dict['Name'] = self.atrb_dict['Parent']
+                del self.atrb_dict['Parent']
         for k in SELECTED_ATTRIBUTES[feature]:
             if k in self.atrb_dict:
                 v = self.atrb_dict[k]
