@@ -3,20 +3,40 @@
 Input:
 Output:
 Usage:
-    python3 gff_converter.py <input_file> <output_file> <assembly report> <gff_file_type>
+    gff_converter.py [-h] -i File -o File [-a File] -s str [--add_intron]
 Example:
-    python3 gff_converter.py ensembl_test.gff3 ensembl_test_out.gff data/GCF_000001405.25_GRCh37.p13_assembly_report.txt ENSEMBL
+    python3 gff_converter.py -i ensembl_test.gff3 -o ensembl_test_out2.gff -a data/GCF_000001405.25_GRCh37.p13_assembly_report.txt -s ENSEMBL --add_intron
     python3 gff_converter.py ncbi_test.gff ncbi_test_out.gff data/GCF_000001405.25_GRCh37.p13_assembly_report.txt NCBI
 """
-import sys
+
+import argparse
+from typing import NamedTuple, TextIO
 from GFF import GffRecord, GffAttributes, SELECTED_TYPES, SELECTED_SUB_TYPES, SELECTED_ATTRIBUTES
 
-gff_file = sys.argv[1]
-out_file = sys.argv[2]
-assembly_report_file = sys.argv[3]
-gff_style = sys.argv[4].upper()
-assert gff_style in {'ENSEMBL', 'NCBI'}
-ADD_INTRON = True  # did the gff file include intron
+
+class Arags(NamedTuple):
+    """
+    Command Line arguments
+    """
+    gff_file:TextIO
+    out_file:TextIO
+    assembly_report_file:TextIO
+    gff_style:str
+    add_intron:bool
+
+
+def get_args():
+    """ 
+    Get command-line arguments
+    """
+    parser = argparse.ArgumentParser(description="Convert NCBI/ENSEMBL style GFF file to a concise UCSC style", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('-i', '--input', metavar='File', type=argparse.FileType('r'), help='Input GFF File', required=True)
+    parser.add_argument('-o', '--output', metavar='File', type=argparse.FileType('w'), help='Output File', required=True)
+    parser.add_argument('-a', '--assembly', metavar='File', type=argparse.FileType('r'), help='Assembly Report File', default='data/GCF_000001405.25_GRCh37.p13_assembly_report.txt')
+    parser.add_argument('-s', '--style', metavar='str', choices=['ENSEMBL', 'NCBI'], help='GFF style', required=True)
+    parser.add_argument('--add_intron', help='Add intron to gff file', action='store_true')
+    args = parser.parse_args()
+    return Arags(gff_file=args.input, out_file=args.output, assembly_report_file=args.assembly, gff_style=args.style, add_intron=args.add_intron)
 
 
 def seqid_conversion(assembly_report_file, gff_style):
@@ -24,7 +44,7 @@ def seqid_conversion(assembly_report_file, gff_style):
     return seqid_conversion dict based on assembly report file
     gff_style includs ESEMBLE AND NCBI
     """
-    input_fhand = open(assembly_report_file)
+    input_fhand = assembly_report_file
     chroms = set([str(i) for i in range(1, 24)]) | set(['X', 'Y', 'MT'])
     refseq_to_ucsc = dict()
     genbank_to_ucsc = dict()
@@ -38,25 +58,26 @@ def seqid_conversion(assembly_report_file, gff_style):
         else:
             genbank_to_ucsc[refseq] = ucsc
         refseq_to_ucsc[genbank] = ucsc
+    input_fhand.close()
     if gff_style == 'ENSEMBL':
         return genbank_to_ucsc
     elif gff_style == 'NCBI':
         return refseq_to_ucsc
 
-
-seqid_trans_dict = seqid_conversion(assembly_report_file, gff_style)
+args = get_args()
+seqid_trans_dict = seqid_conversion(args.assembly_report_file, args.gff_style)
 line_counts = 0
 seq_counts = 0
 gff_records = []
 pre_id = None
-input_fhand = open(gff_file)
-output_fhand = open(out_file, 'w')
+input_fhand = args.gff_file
+output_fhand = args.out_file
 pre_exon_record = None
 
 for line in input_fhand:
     if not line or line.startswith('#'):
         continue
-    curr_record = GffRecord(line, gff_style)
+    curr_record = GffRecord(line, args.gff_style)
     if curr_record.id and (curr_record.type in SELECTED_TYPES):
         pre_id = curr_record.id
         curr_record = curr_record.convert(seqid_trans_dict)
@@ -76,14 +97,14 @@ for line in input_fhand:
             curr_record = curr_record.convert(seqid_trans_dict)
             gff_records.append(curr_record)
 
-        elif ADD_INTRON and curr_record.type == 'exon':
+        elif args.add_intron and curr_record.type == 'exon':
             curr_record = curr_record.convert(seqid_trans_dict)
             if pre_exon_record is not None and  pre_exon_record.type == 'exon' and curr_record.parent != None and curr_record.parent == pre_exon_record.parent:  # add intron record
                 _start = str(int(pre_exon_record.end) + 1)
                 _end = str(int(curr_record.start) - 1)
                 _atrb = f'Parent={curr_record.parent}'
                 if int(_end) >= int(_start):  # do not forget use int for comparision
-                    gff_records.append(GffRecord('\t'.join([curr_record.seqid, curr_record.source, 'intron', _start, _end, '.', curr_record.strand, '.', _atrb]), gff_style))
+                    gff_records.append(GffRecord('\t'.join([curr_record.seqid, curr_record.source, 'intron', _start, _end, '.', curr_record.strand, '.', _atrb]), args.gff_style))
             pre_exon_record = curr_record
 
 if gff_records:
@@ -96,5 +117,3 @@ output_fhand.write('\n')
 output_fhand.close()
 input_fhand.close()
 print (f"Written total {seq_counts} seqs and {line_counts} lines")
-
-
