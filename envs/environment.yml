@@ -9,3 +9,5 @@ dependencies:
   - r-essentials
   - bioconductor-biomart
   - genometools-genometools
+  - bioconductor-org.hs.eg.db
+  
