@@ -2,4 +2,8 @@
 *.gff
 *.gff3
 Note.md
-.yml
+*.tsv
+data
+*.txt
+.vscode
+__pycache__
