@@ -11,9 +11,9 @@ class GffAttributes:
     """
     attributes for gff record
     """
-    def __init__(self,  attributes, gff_type):
+    def __init__(self,  attributes, gff_style):
         self.string = attributes
-        self.gff_type = gff_type
+        self.gff_style = gff_style
         self.atrb_dict = {}
         if self.string != '':
             self._lst = attributes.split(';')
@@ -22,9 +22,9 @@ class GffAttributes:
                     continue
                 _key, _val = _atrb.split('=')
                 self.atrb_dict[_key] = _val
-        if self.gff_type == 'ENSEMBL':
+        if self.gff_style == 'ENSEMBL':
             self.atrb_id_sep = ':'  # e.g. ID=transcript:ENST00000423372;Parent=gene:ENSG00000237683
-        elif self.gff_type == 'NCBI':
+        elif self.gff_style == 'NCBI':
             self.atrb_id_sep = '-' # e.g. ID=exon-NM_001005277.1-1;Parent=rna-NM_001005277.1
     
     def __str__(self):
@@ -32,9 +32,9 @@ class GffAttributes:
     
     def trimm_atrb(self, feature):
         if feature not in SELECTED_ATTRIBUTES:
-            return GffAttributes('', self.gff_type)
+            return GffAttributes('', self.gff_style)
         res = []
-        if self.gff_type == 'NCBI' and feature in SELECTED_TYPES: # use the gene name if got one
+        if self.gff_style == 'NCBI' and feature in SELECTED_TYPES: # use the gene name if got one
             if  'Parent' != 'None':
                 self.atrb_dict['Name'] = self.atrb_dict['Parent']
                 del self.atrb_dict['Parent']
@@ -45,7 +45,7 @@ class GffAttributes:
                 if idx != -1:
                     v = v[idx + 1:]
                 res.append(f'{k}={v}')
-        return GffAttributes(';'.join(res), self.gff_type)
+        return GffAttributes(';'.join(res), self.gff_style)
 
 
 class GffRecord:
@@ -53,18 +53,18 @@ class GffRecord:
     gff record got 8 cols:
     seqid source type start end score strand phase attributes
     """
-    def __init__(self, records, gff_type):
+    def __init__(self, records, gff_style):
         self.string = records
         self.records = records.strip().split('\t')
         self.seqid = self.records[0]
-        self.source = gff_type
+        self.source = gff_style
         self.type = self.records[2]
         self.start = self.records[3]
         self.end = self.records[4]
         self.score = self.records[5]
         self.strand = self.records[6]
         self.phase = self.records[7] 
-        self.attributes = GffAttributes(self.records[8], gff_type)
+        self.attributes = GffAttributes(self.records[8], gff_style)
         self.id = self.attributes.atrb_dict.get('ID', None)
         self.parent = self.attributes.atrb_dict.get('Parent', None)
         self.name = self.attributes.atrb_dict.get('Name', None)

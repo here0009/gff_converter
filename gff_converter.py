@@ -14,15 +14,15 @@ from GFF import GffRecord, GffAttributes, SELECTED_TYPES, SELECTED_SUB_TYPES, SE
 gff_file = sys.argv[1]
 out_file = sys.argv[2]
 assembly_report_file = sys.argv[3]
-gff_type = sys.argv[4].upper()
-assert gff_type in {'ENSEMBL', 'NCBI'}
+gff_style = sys.argv[4].upper()
+assert gff_style in {'ENSEMBL', 'NCBI'}
 ADD_INTRON = True  # did the gff file include intron
 
 
-def seqid_conversion(assembly_report_file, gff_type):
+def seqid_conversion(assembly_report_file, gff_style):
     """
     return seqid_conversion dict based on assembly report file
-    gff_type includs ESEMBLE AND NCBI
+    gff_style includs ESEMBLE AND NCBI
     """
     input_fhand = open(assembly_report_file)
     chroms = set([str(i) for i in range(1, 24)]) | set(['X', 'Y', 'MT'])
@@ -38,13 +38,13 @@ def seqid_conversion(assembly_report_file, gff_type):
         else:
             genbank_to_ucsc[refseq] = ucsc
         refseq_to_ucsc[genbank] = ucsc
-    if gff_type == 'ENSEMBL':
+    if gff_style == 'ENSEMBL':
         return genbank_to_ucsc
-    elif gff_type == 'NCBI':
+    elif gff_style == 'NCBI':
         return refseq_to_ucsc
 
 
-seqid_trans_dict = seqid_conversion(assembly_report_file, gff_type)
+seqid_trans_dict = seqid_conversion(assembly_report_file, gff_style)
 line_counts = 0
 seq_counts = 0
 gff_records = []
@@ -56,7 +56,7 @@ pre_exon_record = None
 for line in input_fhand:
     if not line or line.startswith('#'):
         continue
-    curr_record = GffRecord(line, gff_type)
+    curr_record = GffRecord(line, gff_style)
     if curr_record.id and (curr_record.type in SELECTED_TYPES):
         pre_id = curr_record.id
         curr_record = curr_record.convert(seqid_trans_dict)
@@ -83,7 +83,7 @@ for line in input_fhand:
                 _end = str(int(curr_record.start) - 1)
                 _atrb = f'Parent={curr_record.parent}'
                 if int(_end) >= int(_start):  # do not forget use int for comparision
-                    gff_records.append(GffRecord('\t'.join([curr_record.seqid, curr_record.source, 'intron', _start, _end, '.', curr_record.strand, '.', _atrb]), gff_type))
+                    gff_records.append(GffRecord('\t'.join([curr_record.seqid, curr_record.source, 'intron', _start, _end, '.', curr_record.strand, '.', _atrb]), gff_style))
             pre_exon_record = curr_record
 
 if gff_records:
