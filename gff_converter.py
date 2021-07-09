@@ -6,8 +6,10 @@ Usage:
     gff_converter.py [-h] -i File -o File [-a File] -s str [--add_intron]
 Example:
     python3 gff_converter.py -i ensembl_test.gff3 -o ensembl_test_out2.gff -a data/GCF_000001405.25_GRCh37.p13_assembly_report.txt -s ENSEMBL --add_intron
+    python3 gff_converter.py -i ensembl_test.gff3 -o ensembl_test_out2.gff -s ENSEMBL --add_intron
     python3 gff_converter.py ncbi_test.gff ncbi_test_out.gff data/GCF_000001405.25_GRCh37.p13_assembly_report.txt NCBI
 """
+
 
 import argparse
 from typing import NamedTuple, TextIO
@@ -44,11 +46,10 @@ def seqid_conversion(assembly_report_file, gff_style):
     return seqid_conversion dict based on assembly report file
     gff_style includs ESEMBLE AND NCBI
     """
-    input_fhand = assembly_report_file
     chroms = set([str(i) for i in range(1, 24)]) | set(['X', 'Y', 'MT'])
     refseq_to_ucsc = dict()
     genbank_to_ucsc = dict()
-    for line in input_fhand:
+    for line in assembly_report_file:
         if line.startswith('#'):
             continue
         lst = line.strip().split('\t')
@@ -58,7 +59,6 @@ def seqid_conversion(assembly_report_file, gff_style):
         else:
             genbank_to_ucsc[refseq] = ucsc
         refseq_to_ucsc[genbank] = ucsc
-    input_fhand.close()
     if gff_style == 'ENSEMBL':
         return genbank_to_ucsc
     elif gff_style == 'NCBI':
@@ -70,11 +70,9 @@ line_counts = 0
 seq_counts = 0
 gff_records = []
 pre_id = None
-input_fhand = args.gff_file
-output_fhand = args.out_file
 pre_exon_record = None
 
-for line in input_fhand:
+for line in args.gff_file:
     if not line or line.startswith('#'):
         continue
     curr_record = GffRecord(line, args.gff_style)
@@ -84,12 +82,12 @@ for line in input_fhand:
         if gff_records:
             for _record in gff_records:
                 gff_records.sort(key = lambda x : int(x.start))
-                output_fhand.write(_record.string + '\n')
+                args.out_file.write(_record.string + '\n')
                 line_counts += 1
         gff_records = []
         if seq_counts != 0:
-            output_fhand.write('\n')
-        output_fhand.write(curr_record.string + '\n') # seperate line
+            args.out_file.write('\n')
+        args.out_file.write(curr_record.string + '\n') # seperate line
         seq_counts += 1
         line_counts += 1
     elif curr_record.parent == pre_id:
@@ -110,10 +108,11 @@ for line in input_fhand:
 if gff_records:
     gff_records.sort(key = lambda x : int(x.start))
     for _record in gff_records:
-        output_fhand.write(_record.string + '\n')
+        args.out_file.write(_record.string + '\n')
         line_counts += 1
 
-output_fhand.write('\n')
-output_fhand.close()
-input_fhand.close()
+args.out_file.write('\n')
+args.assembly_report_file.close()
+args.gff_file.close()
+args.out_file.close()
 print (f"Written total {seq_counts} seqs and {line_counts} lines")
