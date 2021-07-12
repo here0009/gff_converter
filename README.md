@@ -101,7 +101,7 @@ Script  for the testing:
 
 ```bash
 python3 gff_converter.py -i gff_data/GCF_000001405.25_GRCh37.p13_genomic.gff -o gff_out/NCBI_output.gff -a data/GCF_000001405.25_GRCh37.p13_assembly_report.txt -t  gff_out/ncbi_name_id.tsv -s NCBI --add_intron --add_utr
-python3 gff_converter.py -i gff_data/Homo_sapiens.GRCh37.87.Ensembl.gff3  -o gff_out/ENSEMBL_output.gff -a data/GCF_000001405.25_GRCh37.p13_assembly_report.txt -t  gff_out/ensembl_name_id.tsv -s ENSEMBL --add_intron
+python3 gff_converter.py -i gff_data/Homo_sapiens.GRCh37.87.Ensembl.gff3  -o gff_out/ENSEMBL_output.gff -a data/GCF_000001405.25_GRCh37.p13_assembly_report.txt -t  gff_out/ensembl_name_id.tsv -s ENSEMBL --add_intron --add_utr
 
 python3 table_translate.py -i gff_out/ncbi_name_id.tsv -o gff_out/trans_ncbi_name_id.tsv  -r data/homo_sapiens_gene2ensembl -t n2e 
 python3 table_translate.py -i gff_out/ensembl_name_id.tsv -o gff_out/trans_ensembl_name_id.tsv -r data/homo_sapiens_gene2ensembl -t e2n

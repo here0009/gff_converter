@@ -177,6 +177,8 @@ class RNA(GffRecord):
                     right_utrs.append((cds_end + 1, e))
                 else:
                     break
+        elif exons: # no cds, every exon will be considered as utr
+            left_utrs, right_utrs = exons, []
         # return five_prime_utrs and three_prime_utrs
         if self.strand == '+':
             return left_utrs, right_utrs
