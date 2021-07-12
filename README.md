@@ -90,13 +90,17 @@ A small test data is provided in the folder `test` for testing. You can use the 
 
 ```bash
 python3 gff_converter.py -i test/ncbi_test.gff -o test/ncbi_test_output.gff -a data/GCF_000001405.25_GRCh37.p13_assembly_report.txt -t test/ncbi_name_id.tsv -s NCBI  --add_intron --add_utr
+python3 gff_converter.py -i test/ensembl_test.gff3 -o test/ensembl_test_output.gff -a data/GCF_000001405.25_GRCh37.p13_assembly_report.txt -t test/ensembl_name_id.tsv -s ENSEMBL  --add_intron --add_utr
 
 python3 table_translate.py -i test/ncbi_name_id.tsv -o test/trans_ncbi_name_id.tsv  -r data/homo_sapiens_gene2ensembl -t n2e
+python3 table_translate.py -i test/ensembl_name_id.tsv -o test/trans_ensembl_name_id.tsv -r data/homo_sapiens_gene2ensembl -t e2n 
 
 Rscript org_Hs_eg_db_translate.R test/ncbi_name_id.tsv test/R_ncbi_name_id.tsv n2e
+Rscript org_Hs_eg_db_translate.R gff_out/ensembl_name_id.tsv gff_out/R_trans_ensembl_name_id.tsv e2n
 
 python3 coord_translate.py -n test/ncbi_test.gff -e test/ensembl_test.gff3 -a data/GCF_000001405.25_GRCh37.p13_assembly_report.txt -o test/trans_coord_id.tsv
 
+python3 check_gff.py -i test/ncbi_test_output.gff -s NCBI
 python3 check_gff.py -i test/ensembl_test_output.gff -s ENSEMBL
 ```
 

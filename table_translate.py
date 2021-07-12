@@ -103,7 +103,8 @@ def get_dicts(ref_table):
         if line.startswith('#'):
             continue
         lst = line.strip().split('\t')
-        ncbi_id = trimm_id(lst[3])
+        # ncbi_id = trimm_id(lst[3]) 
+        ncbi_id = lst[3] # try to not trimm ncbi_id
         ensembl_id = trimm_id(lst[4])
         n2e_dict[ncbi_id] = ensembl_id
         e2n_dict[ensembl_id] = ncbi_id

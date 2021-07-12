@@ -68,8 +68,8 @@ class GffAttributes:
                 idx = v.find(self.atrb_id_sep)
                 if idx != -1:
                     v = v[idx + 1:]
-                if k == 'ID' or k == 'Parent':  # remove the version after dot for id and parent
-                    v = v.split('.')[0]
+                # if k == 'ID' or k == 'Parent':  # remove the version after dot for id and parent
+                #     v = v.split('.')[0]
                 res.append(f'{atrb_trans_dict[k]}={v}')  # transfer Name to name
         return GffAttributes('; '.join(res), self.gff_style)
 

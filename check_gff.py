@@ -120,7 +120,7 @@ def check_gff(input_fhand, gff_style):
                 invalid_counts += 1
             else:
                 sub_coords.append((int(gff.start), int(gff.end)))
-    print(f"Checked {seq_counts} seqs and {line_counts} lines, {invalid_counts} for them is invalid")
+    print(f"Checked {seq_counts} seqs and {line_counts} lines, {invalid_counts} of them is invalid")
             
 def main():
     """
