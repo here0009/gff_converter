@@ -7,3 +7,6 @@ data
 *.txt
 .vscode
 __pycache__
+test
+test_ref
+gff_out

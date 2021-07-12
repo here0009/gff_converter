@@ -6,10 +6,13 @@
 # Name  NCBI    ENSEMBL
 # Usage: 
 # Rscript org_Hs_eg_db_translate.R input_file output_file trans_type
-# Example1: 
+# Example:
+# Test Data: 
 # Rscript org_Hs_eg_db_translate.R test/ensembl_name_id.tsv test/R_ensembl_ids.tsv e2n
-# Example2: 
 # Rscript org_Hs_eg_db_translate.R test/ncbi_name_id.tsv test/R_ncbi_name_id.tsv n2e
+# Real Data:
+# Rscript org_Hs_eg_db_translate.R gff_out/ncbi_name_id.tsv gff_out/R_trans_ncbi_name_id.tsv n2e
+# Rscript org_Hs_eg_db_translate.R gff_out/ensembl_name_id.tsv gff_out/R_trans_ensembl_name_id.tsv e2n
 # Output: 
 # tsv file with tranlated refseq_ids and ensembl_ids
 

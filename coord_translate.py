@@ -1,23 +1,29 @@
 #!/usr/bin/env python3
 
 """
-usage: table_translate.py [-h] -i input.tsv -o output.tsv [-r File] [-t str]
+usage: coord_translate.py [-h] -n ncbi.gff -e ensembl.gff -a assembly_report -o output.tsv
 
-Translate NCBI Refseq ID to ENSEMBL Transcript ID, or vice versa, based on a transformation table provided by NCBI    
+Match NCBI Refseq ID and ENSEMBL Transcript ID based on the coordinates. Transcripts/mRNAs that got the same seqid, start, end, strand and exones are considered   
+to be identical.
 
 optional arguments:
   -h, --help            show this help message and exit
-  -i input.tsv, --input input.tsv
-                        Input tsv file, 3 cols of NAME/NCBI/ENSEML (default: None)
+  -n ncbi.gff, --ncbi_gff ncbi.gff
+                        NCBI Gff File (default: None)
+  -e ensembl.gff, --ensembl_gff ensembl.gff
+                        ENSEMBL Gff File (default: None)
+  -a assembly_report, --assembly_report assembly_report
+                        assembly report file (default: None)
   -o output.tsv, --output output.tsv
-                        Output tsv file, 3 cols of NAME/NCBI/ENSEML (default: None)
-  -r File, --ref File   Translation Table (default: data/homo_sapiens_gene2ensembl)
-  -t str, --trans_type str
-                        Transformation Style, can be: e2n:ENSEMBL to NCBI; n2e: NCBI to ENSEMBL; both: e2n and n2e    
-                        (default: both)
-Example: 
+                        output tsv File, cols: seqid;start;end;strand;ncbi_id;ncbi_name;ensembl_id;ensembl_name (default: None)
+
+Example:
+
+Test Data:
    python3 coord_translate.py -n test/ncbi_test.gff -e test/ensembl_test.gff3 -a data/GCF_000001405.25_GRCh37.p13_assembly_report.txt -o test/trans_coord_id.tsv
-   python3 coord_translate.py -n gff_data/GCF_000001405.25_GRCh37.p13_genomic.gff -e gff_data/Homo_sapiens.GRCh37.87.Ensembl.gff3 -a data/GCF_000001405.25_GRCh37.p13_assembly_report.txt -o trans_coord_id.tsv
+
+Real Data:
+   python3 coord_translate.py -n gff_data/GCF_000001405.25_GRCh37.p13_genomic.gff -e gff_data/Homo_sapiens.GRCh37.87.Ensembl.gff3 -a data/GCF_000001405.25_GRCh37.p13_assembly_report.txt -o gff_out/trans_coord_id.tsv
 """
 
 
@@ -63,8 +69,7 @@ def get_args():
                         metavar='assembly_report',
                         type=argparse.FileType('r'),
                         help='assembly report file',
-                        default='data/GCF_000001405.25_GRCh37.p13_assembly_report.txt',
-                        # required=True
+                        required=True
                         )
     parser.add_argument('-o', '--output',
                         metavar='output.tsv',

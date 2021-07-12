@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-usage: table_translate.py [-h] -i input.tsv -o output.tsv [-r File] [-t str]
+table_translate.py [-h] -i input.tsv -o output.tsv -r translation_table [-t trans_type]
 
 Translate NCBI Refseq ID to ENSEMBL Transcript ID, or vice versa, based on a transformation table provided by NCBI    
 
@@ -17,8 +17,14 @@ optional arguments:
                         (default: both)
 
 Example: 
+
+Test Data:
     python3 table_translate.py -i test/ncbi_name_id.tsv -o test/trans_ncbi_name_id.tsv  -r data/homo_sapiens_gene2ensembl -t n2e 
     python3 table_translate.py -i test/ensembl_name_id.tsv -o test/trans_ensembl_name_id.tsv -r data/homo_sapiens_gene2ensembl -t e2n  
+
+Real Data:
+    python3 table_translate.py -i gff_out/ncbi_name_id.tsv -o gff_out/trans_ncbi_name_id.tsv  -r data/homo_sapiens_gene2ensembl -t n2e 
+    python3 table_translate.py -i gff_out/ensembl_name_id.tsv -o gff_out/trans_ensembl_name_id.tsv -r data/homo_sapiens_gene2ensembl -t e2n  
 """
 
 
@@ -56,14 +62,13 @@ def get_args():
                         required=True
                         )
     parser.add_argument('-r', '--ref',
-                        metavar='File',
+                        metavar='translation_table',
                         type=argparse.FileType('r'),
                         help='Translation Table',
-                        default='data/homo_sapiens_gene2ensembl',
-                        # required=True
+                        required=True
                         )
     parser.add_argument('-t', '--trans_type',
-                        metavar='str',
+                        metavar='trans_type',
                         choices=['e2n', 'n2e', 'both'],
                         help='Transformation Style, can be: e2n:ENSEMBL to NCBI; n2e: NCBI to ENSEMBL; both: e2n and n2e',
                         default='both'
