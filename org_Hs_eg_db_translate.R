@@ -47,11 +47,11 @@ if (trans_type == 'e2n' || trans_type == 'both'){
 }
 
 if (trans_type == 'n2e' || trans_type == 'both'){
-    # gene_ids_table$NCBI2 <- sapply(strsplit(as.character(gene_ids_table$NCBI), "\\."), "[", 1) 
+    gene_ids_table$NCBI2 <- sapply(strsplit(as.character(gene_ids_table$NCBI), "\\."), "[", 1) 
     # get the trimmed ncbi_id so we can use org.Hs.eg.db to do the query
     # e.g."NM_001256128.1" will be trimmed to "NM_001256128" , already trimmed at the table
-    # ncbi_ids <- unlist(gene_ids_table[gene_ids_table[,3] == "None", ][,4])
-    ncbi_ids <- unlist(gene_ids_table[gene_ids_table[,3] == "None", ][,2])
+    ncbi_ids <- unlist(gene_ids_table[gene_ids_table[,3] == "None", ][,4])
+    # ncbi_ids <- unlist(gene_ids_table[gene_ids_table[,3] == "None", ][,2])
     quries = length(ncbi_ids)
     trans_ids = tryCatch(mapIds(org.Hs.eg.db, keys=ncbi_ids, keytype="REFSEQ", column="ENSEMBLTRANS"), error = function(e) NULL)
     if (!is.null(trans_ids)){
@@ -59,8 +59,9 @@ if (trans_type == 'n2e' || trans_type == 'both'){
             name = gene_ids_table[i, 1]
             ncbi = gene_ids_table[i, 2]
             ensembl = gene_ids_table[i, 3]
-            # ncbi2 = gene_ids_table[i, 4]
-            if (ncbi != "None" && ensembl == "None" && !is.na(trans_ids[ncbi])){
+            ncbi2 = gene_ids_table[i, 4]
+            if (ncbi != "None" && ensembl == "None" && !is.na(trans_ids[ncbi2])){
+            # if (ncbi != "None" && ensembl == "None" && !is.na(trans_ids[ncbi])){
                 # print(c(name, ncbi, ensembl, trans_ids[ncbi2]))
                 gene_ids_table[i, 3] = trans_ids[ncbi]
                 trans_counts = trans_counts + 1
