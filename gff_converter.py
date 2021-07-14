@@ -123,9 +123,9 @@ def get_seqid_trans_table(assembly_report_file):
         if seq_name in chroms:
             ensembl_to_ucsc[seq_name] = ucsc
         else:
-            ensembl_to_ucsc[ensembl] = ucsc
-        ncbi_to_ucsc[ncbi] = ucsc
-    return ncbi_to_ucsc, ensembl_to_ucsc
+            ensembl_to_ucsc[ensembl] = ucsc if ucsc != 'na' else ensembl
+        ncbi_to_ucsc[ncbi] = ucsc if ucsc != 'na' else ncbi
+    return ncbi_to_ucsc, ensembl_to_ucsc 
 
 
 def get_trans_tables(seqid_trans_dict, type_trans_dict, atrb_trans_dict):
