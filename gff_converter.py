@@ -123,8 +123,10 @@ def get_seqid_trans_table(assembly_report_file):
         if seq_name in chroms:
             ensembl_to_ucsc[seq_name] = ucsc
         else:
-            ensembl_to_ucsc[ensembl] = ucsc if ucsc != 'na' else ensembl
-        ncbi_to_ucsc[ncbi] = ucsc if ucsc != 'na' else ncbi
+            # ensembl_to_ucsc[ensembl] = ucsc if ucsc != 'na' else ensembl
+            ensembl_to_ucsc[ensembl] = ucsc
+        # ncbi_to_ucsc[ncbi] = ucsc if ucsc != 'na' else ncbi
+        ncbi_to_ucsc[ncbi] = ucsc
     return ncbi_to_ucsc, ensembl_to_ucsc 
 
 
@@ -153,11 +155,15 @@ def read_gff(gff_file, gff_style, trans_tables):
             continue
         curr_record = GffRecord(line, gff_style)
         if curr_record.type in SELECTED_TYPES:
+            if curr_record.id == "na":
+                continue
             curr_record = RNA(curr_record.convert(
                 trans_tables).string, gff_style)
             if curr_record.id is not None:
                 id_gff_dict[curr_record.id] = curr_record
         elif curr_record.type in SELECTED_SUB_TYPES and curr_record.parent is not None:
+            if curr_record.id == "na":
+                continue
             curr_record = curr_record.convert(trans_tables)
             subtype_gff_list.append(curr_record)
 
