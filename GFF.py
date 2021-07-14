@@ -3,11 +3,11 @@
 Classes and Parameters for GFF conversion
 """
 
-SELECTED_TYPES = {'mRNA', 'transcript'}  # col3 : col8 ID_type
+SELECTED_TYPES = {'mRNA', 'transcript', 'rRNA', 'tRNA'}  # col3 : col8 ID_type
 SELECTED_SUB_TYPES = {'CDS', 'exon', 'five_prime_UTR', 'three_prime_UTR', 'intron'}
 WRITE_SUB_TYPES = {'CDS',  '5_UTR', '3_UTR', 'intron'}
-SELECTED_ATTRIBUTES =  {'mRNA':['ID','Name', 'Parent'], 'transcript':['ID','Name', 'Parent'], 'CDS':['Parent'], 'intron':['Parent'], 'five_prime_UTR':['Parent'], 'three_prime_UTR':['Parent'], 'exon':['Parent']}
-WRITE_ATTRIBUTES = {'mRNA':['ID','Name'], 'transcript':['ID','Name'], 'CDS':['Parent'], 'intron':['Parent'], 'five_prime_UTR':['Parent'], 'three_prime_UTR':['Parent'], 'exon':['Parent']}
+SELECTED_ATTRIBUTES =  {'mRNA':['ID','Name', 'Parent'], 'transcript':['ID','Name', 'Parent'], 'CDS':['Parent'], 'intron':['Parent'], 'five_prime_UTR':['Parent'], 'three_prime_UTR':['Parent'], 'exon':['Parent'], 'tRNA':['ID','Name', 'Parent'], 'rRNA':['ID','Name', 'Parent']}
+WRITE_ATTRIBUTES = {'mRNA':['ID','Name'], 'transcript':['ID','Name'], 'CDS':['Parent'], 'intron':['Parent'], 'five_prime_UTR':['Parent'], 'three_prime_UTR':['Parent'], 'exon':['Parent'], 'rRNA':['ID','Name'], 'tRNA':['ID','Name']}
 TYPE_TRANS_DICT = {'CDS': 'CDS',  'five_prime_UTR': '5_UTR', 'three_prime_UTR': '3_UTR',
                    'intron': 'intron', 'mRNA': 'mRNA', 'transcript': 'transcript', 'exon': 'exon'}
 ATRB_TRANS_DICT = {'ID': 'ID', 'Name': 'name', 'Parent': 'Parent'}
@@ -34,7 +34,7 @@ class GffAttributes:
         self.string = attributes
         self.gff_style = gff_style
         self.atrb_dict = {}
-        if self.string != '':
+        if self.string != '.':
             self.lst = attributes.split(';')
             for atrb in self.lst:
                 atrb = atrb.strip()  # remove extra spaces if any
@@ -56,7 +56,7 @@ class GffAttributes:
     def trimm_atrb(self, type_name, atrb_trans_dict):
         # type_name is name of type or subtype
         if type_name not in SELECTED_ATTRIBUTES:
-            return GffAttributes('', self.gff_style)
+            return GffAttributes('.', self.gff_style)  # return . to prevent split to only 8 cols
         res = []
         if self.gff_style == 'NCBI' and type_name in SELECTED_TYPES: # NCBI use "NM_*"  or "NR_* "as name, replace it with the gene name if got one
             if 'Parent' in self.atrb_dict:
@@ -71,6 +71,8 @@ class GffAttributes:
                 # if k == 'ID' or k == 'Parent':  # remove the version after dot for id and parent
                 #     v = v.split('.')[0]
                 res.append(f'{atrb_trans_dict[k]}={v}')  # transfer Name to name
+        if not res:
+            return GffAttributes('.', self.gff_style)
         return GffAttributes('; '.join(res), self.gff_style)
 
 
@@ -82,6 +84,8 @@ class GffRecord:
     def __init__(self, record, gff_style):
         self.string = record
         lst = record.strip().split('\t')
+        # print(lst)
+        # print(len(lst))
         assert len(lst) == 9
         self.seqid = lst[0]
         self.source = gff_style

@@ -119,12 +119,12 @@ def get_seqid_trans_table(assembly_report_file):
         if line.startswith('#'):
             continue
         lst = line.strip().split('\t')
-        seqid, refseq, genbank, ucsc = lst[0], lst[4], lst[6], lst[9]
-        if seqid in chroms:
-            ensembl_to_ucsc[seqid] = ucsc
+        seq_name, ensembl, ncbi, ucsc = lst[0], lst[4], lst[6], lst[9]
+        if seq_name in chroms:
+            ensembl_to_ucsc[seq_name] = ucsc
         else:
-            ensembl_to_ucsc[refseq] = ucsc
-        ncbi_to_ucsc[genbank] = ucsc
+            ensembl_to_ucsc[ensembl] = ucsc
+        ncbi_to_ucsc[ncbi] = ucsc
     return ncbi_to_ucsc, ensembl_to_ucsc
 
 
