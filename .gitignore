@@ -3,7 +3,6 @@
 *.gff3
 Note.md
 *.tsv
-data
 *.txt
 .vscode
 __pycache__
