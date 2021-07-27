@@ -1,0 +1,1 @@
+python3 gff_converter.py -i e/linux/database/gff -a data/GCF_000001405.25_GRCh37.p13_assembly_report.txt -s 

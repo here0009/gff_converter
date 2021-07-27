@@ -3,7 +3,6 @@
 *.gff3
 Note.md
 *.tsv
-*.txt
 .vscode
 __pycache__
 test
