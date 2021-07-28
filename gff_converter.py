@@ -15,7 +15,7 @@ optional arguments:
   -t output_name_id_table, --table output_name_id_table
                         Output Name Id table File (default: None)
   -s gff_style, --style gff_style
-                        Gff style, "ENSEMBL" or "NCBI" (default: None)
+                        Gff style, "ENSEMBL" or "NCBI" or "UCSC" (default: None)
   --add_intron          Add intron to gff file (default: False)
   --add_utr             Add UTR to gff file (default: False)
 
@@ -30,13 +30,15 @@ Real Data:
     python3 gff_converter.py -i gff_data/GCF_000001405.25_GRCh37.p13_genomic.gff -o gff_out/NCBI_output.gff -a data/GCF_000001405.25_GRCh37.p13_assembly_report.txt -t  gff_out/ncbi_name_id.tsv -s NCBI --add_intron --add_utr
 
     python3 gff_converter.py -i gff_data/Homo_sapiens.GRCh37.87.Ensembl.gff3  -o gff_out/ENSEMBL_output.gff -a data/GCF_000001405.25_GRCh37.p13_assembly_report.txt -t  gff_out/ensembl_name_id.tsv -s ENSEMBL --add_intron --add_utr
+
+    python3 gff_converter.py -i hg19_gff/hg19.refGene.gtf  -o hg19_gff/UCSC_output.gff -a data/GCF_000001405.25_GRCh37.p13_assembly_report.txt -t  hg19_gff/UCSC_name_id.tsv -s UCSC --add_intron 
 """
 
 
 import argparse
 from typing import NamedTuple, TextIO
 from collections import OrderedDict
-from GFF import RNA, GffRecord, TransTables, SELECTED_TYPES, SELECTED_SUB_TYPES, WRITE_SUB_TYPES, TYPE_TRANS_DICT, ATRB_TRANS_DICT
+from GFF import RNA, GffRecord, TransTables, SELECTED_TYPES, SELECTED_SUB_TYPES, WRITE_SUB_TYPES, TYPE_TRANS_DICT, ATRB_TRANS_DICT, UCSC_TYPE_TRANS_DICT, UCSC_ATRB_TRANS_DICT
 
 class Arags(NamedTuple):
     """
@@ -85,8 +87,8 @@ def get_args():
                         )
     parser.add_argument('-s', '--style',
                         metavar='gff_style',
-                        choices=['ENSEMBL', 'NCBI'],
-                        help='Gff style, "ENSEMBL" or "NCBI"',
+                        choices=['ENSEMBL', 'NCBI', 'UCSC'],
+                        help='Gff style, "ENSEMBL" or "NCBI" or"UCSC"',
                         required=True
                         )
     parser.add_argument('--add_intron',
@@ -140,6 +142,16 @@ def get_trans_tables(seqid_trans_dict, type_trans_dict, atrb_trans_dict):
     trans_tables.add_table('atrb', atrb_trans_dict)
     return trans_tables
 
+
+def get_ucsc_trans_tables(type_trans_dict, atrb_trans_dict):
+    """
+    Get the tables for UCSC name transision
+    """
+    trans_tables = TransTables()
+    trans_tables.add_table('type', type_trans_dict)
+    trans_tables.add_table('atrb', atrb_trans_dict)
+    return trans_tables
+
 def read_gff(gff_file, gff_style, trans_tables):
     """
     1. For each gff record, if it belongs to selected types or subtypes, do the transformation and trimming
@@ -149,24 +161,30 @@ def read_gff(gff_file, gff_style, trans_tables):
     """
     id_gff_dict = OrderedDict([])  # gff_record.id : rna
     subtype_gff_list = []
-
+    if gff_style == 'UCSC': # when UCSC input gtf file was converted, it need to be parsed as NCBI style to get the atributes.
+        converted_style = 'NCBI'
+    else:
+        converted_style = gff_style
     for line in gff_file:  # add selected type to id_list and id_gff_dict
         if not line or line.startswith('#'):
             continue
         curr_record = GffRecord(line, gff_style)
         if curr_record.type in SELECTED_TYPES:
-            if curr_record.id == "na":
+            if curr_record.id == "na":  # skip na
                 continue
             curr_record = RNA(curr_record.convert(
-                trans_tables).string, gff_style)
+                trans_tables).string, converted_style)
             if curr_record.id is not None:
                 id_gff_dict[curr_record.id] = curr_record
-        elif curr_record.type in SELECTED_SUB_TYPES and curr_record.parent is not None:
-            if curr_record.id == "na":
+        # elif curr_record.type in SELECTED_SUB_TYPES and curr_record.parent is not None:
+        elif curr_record.type in SELECTED_SUB_TYPES:
+            if curr_record.id == "na": # skip na
                 continue
-            curr_record = curr_record.convert(trans_tables)
+            curr_record = GffRecord(curr_record.convert(trans_tables).string, converted_style)
+            # print(curr_record, curr_record.parent)
             subtype_gff_list.append(curr_record)
 
+    # print(id_gff_dict.keys())
     for gff in subtype_gff_list:  # add subtype as children if the parent is in id_list
         if gff.parent in id_gff_dict:
             id_gff_dict[gff.parent].add_children(gff)
@@ -181,7 +199,7 @@ def write_table(gff_style, name_id_table, gff):
     """
     name = gff.name if gff.name else 'None'
     source_id = gff.id if gff.id else 'None'
-    if gff_style == "NCBI":
+    if gff_style == "NCBI" or gff_style == "UCSC":
         name_id_table.write('\t'.join([name, source_id, 'None']) + '\n')
     else:
         name_id_table.write('\t'.join([name, 'None', source_id]) + '\n')
@@ -220,8 +238,10 @@ def main():
         seqid_trans_dict = seqid_dicts[0]
     elif args.gff_style == 'ENSEMBL':
         seqid_trans_dict = seqid_dicts[1]
-    trans_tables = get_trans_tables(
-        seqid_trans_dict, TYPE_TRANS_DICT, ATRB_TRANS_DICT)
+    if args.gff_style == 'UCSC':
+        trans_tables = get_ucsc_trans_tables(UCSC_TYPE_TRANS_DICT, UCSC_ATRB_TRANS_DICT)
+    else:
+        trans_tables = get_trans_tables(seqid_trans_dict, TYPE_TRANS_DICT, ATRB_TRANS_DICT)
     id_rna_dict = read_gff(args.gff_file, args.gff_style, trans_tables.tables)
     args.name_id_table.write('\t'.join(['Name', 'NCBI', 'ENSEMBL']) + '\n') # header for name_id_table
     write_gff(args.out_file, args.add_intron, args.add_utr,

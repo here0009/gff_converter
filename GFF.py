@@ -4,14 +4,17 @@ Classes and Parameters for GFF conversion
 """
 
 SELECTED_TYPES = {'mRNA', 'transcript', 'rRNA', 'tRNA'}  # col3 : col8 ID_type
-SELECTED_SUB_TYPES = {'CDS', 'exon', 'five_prime_UTR', 'three_prime_UTR', 'intron'}
+SELECTED_SUB_TYPES = {'CDS', 'exon', 'five_prime_UTR', 'three_prime_UTR', 'intron', '5UTR', '3UTR'}
 WRITE_SUB_TYPES = {'CDS',  '5_UTR', '3_UTR', 'intron'}
-SELECTED_ATTRIBUTES =  {'mRNA':['ID','Name', 'Parent'], 'transcript':['ID','Name', 'Parent'], 'CDS':['Parent'], 'intron':['Parent'], 'five_prime_UTR':['Parent'], 'three_prime_UTR':['Parent'], 'exon':['Parent'], 'tRNA':['ID','Name', 'Parent'], 'rRNA':['ID','Name', 'Parent']}
-WRITE_ATTRIBUTES = {'mRNA':['ID','Name'], 'transcript':['ID','Name'], 'CDS':['Parent'], 'intron':['Parent'], 'five_prime_UTR':['Parent'], 'three_prime_UTR':['Parent'], 'exon':['Parent'], 'rRNA':['ID','Name'], 'tRNA':['ID','Name']}
+SELECTED_ATTRIBUTES = {'mRNA': ['ID', 'Name', 'Parent'], 'transcript': ['ID', 'Name', 'Parent'], 'CDS': ['Parent'], 'intron': ['Parent'], 'five_prime_UTR': ['Parent'], '5UTR': ['Parent'], '3UTR': ['Parent'], 'three_prime_UTR': ['Parent'], 'exon': ['Parent'], 'tRNA': ['ID', 'Name', 'Parent'], 'rRNA': ['ID', 'Name', 'Parent']}
+WRITE_ATTRIBUTES = {'mRNA': ['ID', 'Name', 'transcript_id', 'gene_id'], 'transcript': ['ID', 'Name', 'transcript_id', 'gene_id'], 'CDS': ['Parent'], 'intron': ['Parent'], 'five_prime_UTR': ['Parent'], 'three_prime_UTR': ['Parent'], '5UTR': ['Parent'], '3UTR': ['Parent'], 'exon': ['Parent'], 'rRNA': ['ID', 'Name'], 'tRNA': ['ID', 'Name']}
 TYPE_TRANS_DICT = {'CDS': 'CDS',  'five_prime_UTR': '5_UTR', 'three_prime_UTR': '3_UTR',
                    'intron': 'intron', 'mRNA': 'mRNA', 'transcript': 'transcript', 'exon': 'exon'}
 ATRB_TRANS_DICT = {'ID': 'ID', 'Name': 'name', 'Parent': 'Parent'}
-
+UCSC_TYPE_TRANS_DICT = {'5UTR': '5_UTR', '3UTR': '3_UTR',
+                        'transcript': 'transcript', 'exon': 'exon', 'CDS': 'CDS', 'mRNA': 'mRNA'}
+UCSC_ATRB_TRANS_DICT = {'gene_id': 'name',
+                        'transcript_id': 'ID', 'Parent': 'Parent'}
 
 class TransTables():
     """
@@ -70,12 +73,17 @@ class GffAttributes:
             if 'Parent' in self.atrb_dict:
                 self.atrb_dict['Name'] = self.atrb_dict['Parent']
                 del self.atrb_dict['Parent']
+        if self.gff_style == 'UCSC' and type_name in SELECTED_SUB_TYPES:  # convert transcript_id to parent
+            if 'transcript_id' in self.atrb_dict:
+                self.atrb_dict['Parent'] = self.atrb_dict['transcript_id']
+                del self.atrb_dict['transcript_id']
         for k in WRITE_ATTRIBUTES[type_name]:
             if k in self.atrb_dict:
                 v = self.atrb_dict[k]
-                idx = v.find(self.atrb_id_sep)
-                if idx != -1:
-                    v = v[idx + 1:]
+                if self.gff_style != 'UCSC':
+                    idx = v.find(self.atrb_id_sep)
+                    if idx != -1:
+                        v = v[idx + 1:]
                 # if k == 'ID' or k == 'Parent':  # remove the version after dot for id and parent
                 #     v = v.split('.')[0]
                 res.append(f'{atrb_trans_dict[k]}={v}')  # transfer Name to name
