@@ -81,9 +81,6 @@ def get_args():
                  )
 
 
-args = get_args()
-
-
 def trimm_id(ref_id):
     """
     trimm the version number after ncbi refseq id or ensembl id
@@ -141,6 +138,7 @@ def main():
     """
     Main
     """
+    args = get_args()
     n2e_dict, e2n_dict = get_dicts(args.ref_table)
     translate_ids(args.input_file, args.output_file, args.trans_type, n2e_dict, e2n_dict)
     args.output_file.write('\n')
