@@ -33,19 +33,27 @@ class GffAttributes:
     def __init__(self,  attributes, gff_style):
         self.string = attributes
         self.gff_style = gff_style
+        if self.gff_style == 'UCSC':
+            # example of UCSC Attributes: gene_id "ABI1"; transcript_id "NR_145410.2"; exon_number "6"; exon_id "NR_145410.2.6"; gene_name "ABI1"; # 
+            self.atrb_sep = ' '
+        else:
+            self.atrb_sep = '='
         self.atrb_dict = {}
         if self.string != '.':
             self.lst = attributes.split(';')
             for atrb in self.lst:
                 atrb = atrb.strip()  # remove extra spaces if any
-                if '=' not in atrb:
+                if self.atrb_sep not in atrb:
                     continue
-                key, val = atrb.split('=')
+                key, val = atrb.split(self.atrb_sep)
+                if self.gff_style == 'UCSC':
+                    val = val[1:-1]  # remove the " "
                 self.atrb_dict[key] = val
         if self.gff_style == 'ENSEMBL':
             self.atrb_id_sep = ':'  # e.g. ID=transcript:ENST00000423372;Parent=gene:ENSG00000237683
         elif self.gff_style == 'NCBI':
             self.atrb_id_sep = '-' # e.g. ID=exon-NM_001005277.1-1;Parent=rna-NM_001005277.1
+
     
     def __str__(self):
         return self.string
@@ -197,3 +205,28 @@ class RNA(GffRecord):
         five_prime_utrs, three_prime_utrs = self.get_utrs()
         self.add_coordinates('5_UTR', five_prime_utrs)
         self.add_coordinates('3_UTR', three_prime_utrs)
+
+
+
+class UCSC_TRANSCRIPT:
+    """
+    gff record got 9 cols:
+    seqid source type start end score strand phase attributes
+    """
+    def __init__(self, record, gff_style):
+        self.string = record
+        lst = record.strip().split('\t')
+        assert len(lst) == 9
+        self.seqid = lst[0]
+        self.source = gff_style
+        self.type = lst[2]
+        self.start = lst[3]
+        self.end = lst[4]
+        self.score = lst[5]
+        self.strand = lst[6]
+        self.phase = lst[7] 
+        self.attributes = GffAttributes(lst[8], gff_style)
+        self.id = self.attributes.atrb_dict.get('transcript_id', None)
+        self.name = self.attributes.atrb_dict.get(
+            'gene_name', None)
+        self.children = dict()
