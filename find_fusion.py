@@ -2,7 +2,6 @@ from collections import defaultdict
 from typing import OrderedDict
 
 
-
 bed_file = 'get_coord/final_output.bed'
 fusion_file = 'get_coord/cosmic_fusion.tsv'
 output_file = 'get_coord/fusion_gene_list.tsv'
