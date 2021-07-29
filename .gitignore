@@ -9,3 +9,4 @@ test_ref
 gff_out
 get_coord
 hg19_gff
+cosmic_fusion_report
