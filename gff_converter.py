@@ -31,7 +31,11 @@ Real Data:
 
     python3 gff_converter.py -i gff_data/Homo_sapiens.GRCh37.87.Ensembl.gff3  -o gff_out/ENSEMBL_output.gff -a data/GCF_000001405.25_GRCh37.p13_assembly_report.txt -t  gff_out/ensembl_name_id.tsv -s ENSEMBL --add_intron --add_utr
 
-    python3 gff_converter.py -i hg19_gff/hg19.refGene.gtf  -o hg19_gff/UCSC_output.gff -a data/GCF_000001405.25_GRCh37.p13_assembly_report.txt -t  hg19_gff/UCSC_name_id.tsv -s UCSC --add_intron 
+    python3 gff_converter.py -i hg19_gff/hg19.refGene.gtf  -o hg19_gff/UCSC_refGene_output.gff -a data/GCF_000001405.25_GRCh37.p13_assembly_report.txt -t  hg19_gff/UCSC_refGene_name_id.tsv -s UCSC --add_intron --add_utr
+
+    python3 gff_converter.py -i hg19_gff/hg19.ncbiRefSeq.gtf  -o hg19_gff/UCSC_ncbiRefSeq_output.gff -a data/GCF_000001405.25_GRCh37.p13_assembly_report.txt -t  hg19_gff/UCSC_ncbiRefSeq_name_id.tsv -s UCSC --add_intron --add_utr
+
+
 """
 
 
