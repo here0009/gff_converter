@@ -29,7 +29,7 @@ Note:
 import argparse
 from typing import NamedTuple, OrderedDict, TextIO
 from GFF import RNA
-CHOOSEN_SUB_TYPES = {'CDS'}
+
 # CHOOSEN_SUB_TYPES = {'3_UTR', '5_UTR'}
 
 
@@ -126,7 +126,7 @@ def get_query_id(input_fhand):
         query_id_dict[gene_id] = gene_name
     return query_id_dict
 
-def get_gff(query_id_dict, gff_fhand, gff_style):
+def get_gff(query_id_dict, gff_fhand, gff_style, CHOOSEN_TYPES, CHOOSEN_SUB_TYPES):
     """
     Get the gff file
     """
@@ -137,17 +137,19 @@ def get_gff(query_id_dict, gff_fhand, gff_style):
         if not line or line.startswith('#'):
             continue
         gff_record = RNA(line, gff_style)
-        if gff_record.type == 'transcript' and gff_record.id in query_id_dict:
+        if gff_record.type in CHOOSEN_TYPES and gff_record.id in query_id_dict:
             id_gff_dict[gff_record.id] = gff_record
         # elif gff_record.type == 'CDS' and gff_record.parent in query_id_dict:
         elif gff_record.type in CHOOSEN_SUB_TYPES and gff_record.parent in query_id_dict:
             children_list.append(gff_record)
+    # print(id_gff_dict)
+    # print(children_list)
     for gff_cds in children_list:
         id_gff_dict[gff_cds.parent].add_children(gff_cds)
     return id_gff_dict
 
 
-def get_bed(query_id_dict, id_gff_dict, output_fhand, extra_bp):
+def get_bed(query_id_dict, id_gff_dict, output_fhand, extra_bp, OUTPUT_BED_SUB_TYPES):
     """
     Get the bed file
     """
@@ -161,7 +163,7 @@ def get_bed(query_id_dict, id_gff_dict, output_fhand, extra_bp):
             continue
         gff_record = id_gff_dict[id]
         children_list = []
-        for _type in CHOOSEN_SUB_TYPES:
+        for _type in OUTPUT_BED_SUB_TYPES:
             children_list.extend(gff_record.get_children(_type))
         if len(children_list) == 0:
             no_subtype_names.append((gff_record.id, gff_record.name))
@@ -181,12 +183,15 @@ def get_bed(query_id_dict, id_gff_dict, output_fhand, extra_bp):
 
 
 def main():
+    CHOOSEN_TYPES = {'transcript', 'mRNA'}
+    CHOOSEN_SUB_TYPES = {'CDS'}
+    OUTPUT_BED_SUB_TYPES = {'CDS'}
     args = get_args()
     query_id_dict = get_query_id(args.input_file)
     # print(query_id_dict)
-    id_gff_dict = get_gff(query_id_dict, args.gff_file, args.gff_style)
+    id_gff_dict = get_gff(query_id_dict, args.gff_file, args.gff_style, CHOOSEN_TYPES, CHOOSEN_SUB_TYPES)
     # print(id_gff_dict)
-    get_bed(query_id_dict, id_gff_dict, args.output_file, args.extra_bp)
+    get_bed(query_id_dict, id_gff_dict, args.output_file, args.extra_bp, OUTPUT_BED_SUB_TYPES)
 
 
 if __name__ == '__main__':

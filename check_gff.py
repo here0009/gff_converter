@@ -34,6 +34,7 @@ Real Data:
     python3 check_gff.py -i gff_out/ENSEMBL_output.gff -s ENSEMBL
     python3 check_gff.py -i hg19_gff/UCSC_refGene_output.gff -s NCBI
     python3 check_gff.py -i hg19_gff/UCSC_ncbiRefSeq_output.gff -s NCBI
+    python3 check_gff.py -i gff_out/ENSEMBL_output2.gff -s ENSEMBL
 """
 
 from GFF import GffRecord, SELECTED_SUB_TYPES, SELECTED_TYPES, RNA
