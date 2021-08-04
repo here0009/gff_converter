@@ -8,7 +8,8 @@ SELECTED_TYPES = {'mRNA', 'transcript', 'rRNA', 'tRNA'}  # col3 : col8 ID_type
 SELECTED_SUB_TYPES = {'CDS', 'exon', 'five_prime_UTR', 'three_prime_UTR', 'intron'}
 WRITE_SUB_TYPES = {'CDS',  '5_UTR', '3_UTR', 'intron'}
 SELECTED_ATTRIBUTES = {'mRNA': ['ID', 'Name', 'Parent'], 'transcript': ['ID', 'Name', 'Parent'], 'CDS': ['Parent'], 'intron': ['Parent'], 'five_prime_UTR': ['Parent'], '5UTR': ['Parent'], '3UTR': ['Parent'], 'three_prime_UTR': ['Parent'], 'exon': ['Parent'], 'tRNA': ['ID', 'Name', 'Parent'], 'rRNA': ['ID', 'Name', 'Parent']}
-WRITE_ATTRIBUTES = {'mRNA': ['ID', 'Name', 'transcript_id', 'gene_id'], 'transcript': ['ID', 'Name', 'transcript_id', 'gene_id'], 'CDS': ['Parent'], 'intron': ['Parent'], 'five_prime_UTR': ['Parent'], 'three_prime_UTR': ['Parent'], '5UTR': ['Parent'], '3UTR': ['Parent'], 'exon': ['Parent'], 'rRNA': ['ID', 'Name'], 'tRNA': ['ID', 'Name']}
+WRITE_ATTRIBUTES = {'mRNA': ['ID', 'Name'], 'transcript': ['ID', 'Name'], 'CDS': ['Parent'], 'intron': ['Parent'], 'five_prime_UTR': ['Parent'], 'three_prime_UTR': ['Parent'], '5UTR': ['Parent'], '3UTR': ['Parent'], 'exon': ['Parent'], 'rRNA': ['ID', 'Name'], 'tRNA': ['ID', 'Name']}
+# UCSC_WRITE_ATTRIBUTES = {'mRNA': ['ID', 'Name', 'transcript_id', 'gene_id'], 'transcript': ['ID', 'Name', 'transcript_id', 'gene_id'], 'CDS': ['Parent'], 'intron': ['Parent'], 'five_prime_UTR': ['Parent'], 'three_prime_UTR': ['Parent'], '5UTR': ['Parent'], '3UTR': ['Parent'], 'exon': ['Parent'], 'rRNA': ['ID', 'Name'], 'tRNA': ['ID', 'Name']}
 TYPE_TRANS_DICT = {'CDS': 'CDS',  'five_prime_UTR': '5_UTR', 'three_prime_UTR': '3_UTR',
                    'intron': 'intron', 'mRNA': 'mRNA', 'transcript': 'transcript', 'exon': 'exon'}
 ATRB_TRANS_DICT = {'ID': 'ID', 'Name': 'name', 'Parent': 'Parent'}
