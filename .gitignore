@@ -12,3 +12,6 @@ hg19_gff
 cosmic_fusion_report_grch38
 cosmic_fusion_report_grch37
 gff_data
+.ipynb_checkpoints
+*.ipynb
+data/Gene_transcript_new.list
