@@ -19,10 +19,13 @@ optional arguments:
     # input_gff = ''
 Example:
     python3 get_break_point_region.py -f cosmic_fusion_report_grch37/red_gene/one_end_count.tsv -g gff_out/ENSEMBL_output.gff -t get_coord/trans_gene_id.tsv -o cosmic_fusion_report_grch37/red_gene
-    python3 get_break_point_region.py -f cosmic_fusion_report_grch37/one_end_count.tsv -g gff_out/ENSEMBL_output.gff -t get_coord/trans_gene_id.tsv -o cosmic_fusion_report_grch37
+    python3 get_break_point_region.py -f cosmic_fusion_report_grch37/all_gene/one_end_count.tsv -g gff_out/ENSEMBL_output.gff -t get_coord/trans_gene_id.tsv -o cosmic_fusion_report_grch37
+
+    python3 get_break_point_region.py -f cosmic_fusion_report_grch37/all_gene/one_end_count.tsv -g gff_out/ENSEMBL_output.gff -t get_coord/trans_gene_id.tsv -o cosmic_fusion_report_grch37/test
 """
 
 
+from GFF import GffRecord
 import pandas as pd
 from typing import NamedTuple, TextIO
 import re
@@ -100,27 +103,65 @@ def get_ensembl_ids(input_fusion_file, output_dir, counts_threhold):
     fusion_counts_table["5'_ENSEMBL_ID"] = fusion_counts_table["fusion_parterners"].apply(lambda x: x[0][0])
     fusion_counts_table["3'_GENE_NAME"] = fusion_counts_table["fusion_parterners"].apply(lambda x: x[1][1])
     fusion_counts_table["3'_ENSEMBL_ID"] = fusion_counts_table["fusion_parterners"].apply(lambda x: x[1][0])
-    # fusion_counts_table.to_csv(ensemble_id_file, sep='\t', index = False)
     return fusion_counts_table
 
 
-def get_break_point_bed(ensembl_id, start_from, stop_to, id_gff_dict, output_subtypes, output_gff_set, output_gff_list):
+def get_break_point_bed(fusion_id, ensembl_id, chrom, break_points, id_gff_dict, output_subtypes, output_gff_set, output_gff_list):
     """
     get the break point gff record list
     """
-    
-    if ensembl_id in id_gff_dict:
-        gff_record = id_gff_dict[ensembl_id]
-        children_list = []
-        for _type in output_subtypes:
-            children_list.extend(gff_record.get_children(_type))
-        children_list.sort(key=lambda x: int(x.start))
-        # print(children_list)
-        for child_record in children_list:
-            if int(child_record.start) <= start_from <= int(child_record.end) or int(child_record.start) <= stop_to <= int(child_record.end):
-                if child_record not in output_gff_set:
-                    output_gff_set.add(child_record)
-                    output_gff_list.append(child_record)
+    if len(break_points) == 0:
+        print(f"{fusion_id},{ensembl_id} have no break points!")
+        return
+    if ensembl_id not in id_gff_dict:
+        print(f"{fusion_id}, {ensembl_id} not in gff record!")
+        return
+    gff_record = id_gff_dict[ensembl_id]
+    # if gff_record.seqid != chrom:
+    #     print(f"{fusion_id},{ensembl_id} and gff_record are not on the same chromosome!")
+    #     return
+    children_list = []
+    for _type in output_subtypes:
+        children_list.extend(gff_record.get_children(_type))
+    if len(children_list) == 0:
+        print(f"{gff_record.id},{gff_record.name} have no children!")
+        return
+    children_list.sort(key=lambda x: int(x.start))
+    # print("The Fusions are:")
+    # print(fusion_id, break_points)
+    # print(children_list)
+    idx_child = 0
+    idx_breaks = 0
+    # break point is before the 1st child, add the 500bp seq around break point to the output list
+    while idx_breaks < len(break_points) and break_points[idx_breaks] < int(children_list[0].start): 
+        _s, _e = str(break_points[idx_breaks] - 250), str(break_points[idx_breaks] + 250)
+        idx_breaks += 1
+        _gff = GffRecord('\t'.join([gff_record.seqid, gff_record.source, "BreakPoint", _s, _e, gff_record.score, gff_record.strand, gff_record.phase, gff_record.atrb.string]), gff_record.source)
+        if _gff not in output_gff_set:
+            output_gff_list.append(_gff)
+            output_gff_set.add(_gff)
+        idx_breaks += 1
+    # break point is in the middle of some children, add the gffrecord of chilren to the output list
+    while idx_breaks < len(break_points):
+        while idx_child < len(children_list) and break_points[idx_breaks] > int(children_list[idx_child].end):
+            idx_child += 1
+        if idx_child >= len(children_list):
+            break
+        if int(children_list[idx_child].start) <= break_points[idx_breaks] <= int(children_list[idx_child].end):
+            if children_list[idx_child] not in output_gff_set:
+                output_gff_list.append(children_list[idx_child])
+                output_gff_set.add(children_list[idx_child])
+        idx_breaks += 1
+    # break point is after the last child, add the 500bp seq around break point to the output list
+    while idx_breaks < len(break_points) and break_points[idx_breaks] > int(children_list[-1].end):
+        _s, _e = str(break_points[idx_breaks] - 250), str(break_points[idx_breaks] + 250)
+        idx_breaks += 1
+        _gff = GffRecord('\t'.join([gff_record.seqid, gff_record.source, "BreakPoint", _s, _e, gff_record.score, gff_record.strand, gff_record.phase, gff_record.atrb.string]), gff_record.source)
+        if _gff not in output_gff_set:
+            output_gff_list.append(_gff)
+            output_gff_set.add(_gff)
+        idx_breaks += 1
+
 
 
 def get_break_point_region(fusion_table, id_gff_dict, break_point_fhand, extra_bp, output_subtypes):
@@ -132,13 +173,17 @@ def get_break_point_region(fusion_table, id_gff_dict, break_point_fhand, extra_b
     output_gff_list = []
     output_gff_set = set()
     for _, row in fusion_table.iterrows():
-        get_break_point_bed(row["5'_ENSEMBL_ID"], row["5'_GENOME_START_FROM"], row["5'_GENOME_STOP_TO"], id_gff_dict, output_subtypes, output_gff_set, output_gff_list)
-        get_break_point_bed(row["3'_ENSEMBL_ID"], row["3'_GENOME_START_FROM"], row["3'_GENOME_STOP_TO"], id_gff_dict, output_subtypes, output_gff_set, output_gff_list)
+        fusion_id = row['FUSION_ID']
+        break_points = sorted(list(set([row["5'_GENOME_START_FROM"], row["5'_GENOME_START_TO"], row["5'_GENOME_STOP_FROM"], row["5'_GENOME_STOP_TO"]])))
+        get_break_point_bed(fusion_id, row["5'_ENSEMBL_ID"], row["5'_CHROMOSOME"], break_points, id_gff_dict, output_subtypes, output_gff_set, output_gff_list)
+        break_points = sorted(list(set([row["3'_GENOME_START_FROM"], row["3'_GENOME_START_TO"], row["3'_GENOME_STOP_FROM"], row["3'_GENOME_STOP_TO"]])))
+        get_break_point_bed(fusion_id, row["3'_ENSEMBL_ID"], row["3'_CHROMOSOME"], break_points, id_gff_dict, output_subtypes, output_gff_set, output_gff_list)
     # print(output_gff_list)
     for record in output_gff_list:
         name = id_gff_dict[record.parent].name
         bed_record = get_bed_record(record, name, extra_bp)
         break_point_fhand.write(bed_record + '\t' + record.type + '\n')
+
 
 def main():
     """
@@ -168,7 +213,6 @@ def main():
     print(not_found_fusion_ids)
     query_id2 = set(query_id_dict.keys()) - genelist_ensembl_ids  # the ids in fusion file but not in the input gene list
     query_id2_dict = {k: query_id_dict[k] for k in query_id2}
-    id_gff2_dict = {k: id_gff_dict[k] for k in query_id2} # the ids in fusion but not in the input gene list
     print('The ensembl_id that not in the input gene list are:')
     print([(query_id2_dict[id], id) for id in query_id2_dict])
     # export the fusion parterner information to a bed file
@@ -178,10 +222,11 @@ def main():
     # export the region contain break point to a bed file
     break_point_all = os.path.join(args.output_dir, 'break_point_all.bed') # all of the break points
     break_point_all_fhand = open(break_point_all, 'w')
-    break_point_partial = os.path.join(args.output_dir, 'break_point_partial.bed') # break points the not contain the already selected transcripts.
-    break_point_partial_fhand = open(break_point_partial, 'w')
     get_break_point_region(ensembl_id_table, id_gff_dict, break_point_all_fhand, extra_bp, FUSION_BREAK_POINT_SUBTYPES)
-    get_break_point_region(ensembl_id_table, id_gff2_dict, break_point_partial_fhand, extra_bp, FUSION_BREAK_POINT_SUBTYPES)
+    # id_gff2_dict = {k: id_gff_dict[k] for k in query_id2} # the ids in fusion but not in the input gene list
+    # break_point_partial = os.path.join(args.output_dir, 'break_point_partial.bed') # break points the not contain the already selected transcripts.
+    # break_point_partial_fhand = open(break_point_partial, 'w')
+    # get_break_point_region(ensembl_id_table, id_gff2_dict, break_point_partial_fhand, extra_bp, FUSION_BREAK_POINT_SUBTYPES)
 
 
 if __name__ == '__main__':
