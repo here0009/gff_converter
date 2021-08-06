@@ -15,10 +15,12 @@ optional arguments:
                         Output Directory (default: None)
 
 Example:
-    python3 find_fusion_cosmic_table.py -i get_coord/gene_list.bed -f data/CosmicFusionExport_GRCh37.tsv -o cosmic_fusion_report_grch37
-    python3 find_fusion_cosmic_table.py -i get_coord/red_gene_list.bed -f data/CosmicFusionExport_GRCh37.tsv -o cosmic_fusion_report_grch37/red_gene
+    python3 find_fusion_cosmic_table.py -i get_coord/red_gene/red_gene_list.bed -f data/CosmicFusionExport_GRCh37.tsv -o cosmic_fusion_report_grch37/red_gene
+
+    python3 find_fusion_cosmic_table.py -i get_coord/gene_list.bed -f data/CosmicFusionExport_GRCh37.tsv -o cosmic_fusion_report_grch37/all_gene
 
 """
+
 
 import pandas as pd
 import os.path
@@ -89,6 +91,8 @@ def get_fusion_table(fusion_fhand, PRIMARY_SITE, FUSION_TYPE):
         fusion_table = fusion_table[fusion_table['PRIMARY_SITE'].isin(PRIMARY_SITE)]
     if FUSION_TYPE:
         fusion_table = fusion_table[fusion_table['FUSION_TYPE'].isin(FUSION_TYPE)]
+    # save the data type as int or string, otherwise it will be converted to float
+    fusion_table = fusion_table.astype({"5'_LAST_OBSERVED_EXON":int,"5'_GENOME_START_FROM":int,"5'_GENOME_START_TO":int,"5'_GENOME_STOP_FROM":int,"5'_GENOME_STOP_TO":int,"3'_FIRST_OBSERVED_EXON":int,"3'_GENOME_START_FROM":int,"3'_GENOME_START_TO":int,"3'_GENOME_STOP_FROM":int,"3'_GENOME_STOP_TO":int}) 
     return fusion_table
 
 def get_fusion_report(fusion_table, query_names, output_dir):
@@ -99,14 +103,15 @@ def get_fusion_report(fusion_table, query_names, output_dir):
     print(f"The output dir is {output_dir}")
     one_end_fusion_table = fusion_table[fusion_table["3'_GENE_NAME"].isin(query_names) | fusion_table["5'_GENE_NAME"].isin(query_names)]
     two_ends_fusion_table = fusion_table[fusion_table["3'_GENE_NAME"].isin(query_names) & fusion_table["5'_GENE_NAME"].isin(query_names)]
-    two_ends_fusion_table.to_csv(os.path.join(output_dir, 'two_ends.tsv'), sep = '\t', index = False)
-    one_end_fusion_table.to_csv(os.path.join(output_dir, 'one_end.tsv'), sep = '\t', index = False)
+    # aviod the trailing zeros by '{0:g}'.format()
+    two_ends_fusion_table.to_csv(os.path.join(output_dir, 'two_ends.tsv'), sep = '\t', index = False, float_format = '{0:g}'.format)
+    one_end_fusion_table.to_csv(os.path.join(output_dir, 'one_end.tsv'), sep = '\t', index = False, float_format = '{0:g}'.format)
     group_cols = ["FUSION_ID","TRANSLOCATION_NAME","5'_CHROMOSOME","5'_STRAND","5'_GENE_ID","5'_GENE_NAME","5'_LAST_OBSERVED_EXON","5'_GENOME_START_FROM","5'_GENOME_START_TO","5'_GENOME_STOP_FROM","5'_GENOME_STOP_TO","3'_CHROMOSOME","3'_STRAND","3'_GENE_ID","3'_GENE_NAME","3'_FIRST_OBSERVED_EXON","3'_GENOME_START_FROM","3'_GENOME_START_TO","3'_GENOME_STOP_FROM","3'_GENOME_STOP_TO"]
     one_end_counts = one_end_fusion_table.groupby(by = group_cols).size().reset_index(name='counts')
-    one_end_counts.to_csv(os.path.join(output_dir, 'one_end_count.tsv'), sep = '\t', index = False)
+    one_end_counts.to_csv(os.path.join(output_dir, 'one_end_count.tsv'), sep = '\t', index = False, float_format = '{0:g}'.format)
     print(f"There are {one_end_counts.shape[0]} one end fusions")
     two_ends_counts = two_ends_fusion_table.groupby(by = group_cols).size().reset_index(name='counts')
-    two_ends_counts.to_csv(os.path.join(output_dir, 'two_ends_count.tsv'), sep = '\t', index = False)
+    two_ends_counts.to_csv(os.path.join(output_dir, 'two_ends_count.tsv'), sep = '\t', index = False, float_format = '{0:g}'.format)
     print(f"There are {two_ends_counts.shape[0]} two ends fusions")
 
 def main():
