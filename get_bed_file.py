@@ -18,7 +18,7 @@ optional arguments:
 
 Example:
     python3 get_bed_file.py -i get_coord/gene_list.bed -o get_coord/refGene3.bed -g hg19_gff/UCSC_refGene_output.gff -e 10
-    python3 get_bed_file.py -i get_coord/gene_list2.bed -o get_coord/ncbiRefSeq.bed -g hg19_gff/UCSC_ncbiRefSeq_output.gff -e 10
+    python3 get_bed_file.py -i get_coord/gene_list2.bed -o get_coord/ncbiRefSeq2.bed -g hg19_gff/UCSC_ncbiRefSeq_output.gff -e 10
 
 Note:
     The gff file used for get coordinates is downloaded from UCSC.
@@ -184,8 +184,8 @@ def get_bed(query_id_dict, id_gff_dict, output_fhand, extra_bp, OUTPUT_BED_SUB_T
 
 def main():
     CHOOSEN_TYPES = {'transcript', 'mRNA'}
-    CHOOSEN_SUB_TYPES = {'CDS'}
-    OUTPUT_BED_SUB_TYPES = {'CDS'}
+    CHOOSEN_SUB_TYPES = {'CDS', 'exon', '5_UTR', '3_UTR'}
+    OUTPUT_BED_SUB_TYPES = {'CDS', 'exon','5_UTR', '3_UTR'}
     args = get_args()
     query_id_dict = get_query_id(args.input_file)
     # print(query_id_dict)
