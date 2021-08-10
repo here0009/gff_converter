@@ -22,7 +22,7 @@ Example:
     
     python3 get_break_point_region2.py -f cosmic_fusion_report_grch37/all_gene/one_end_count.tsv -g gff_out/ENSEMBL_output_exon.gff -t get_coord/trans_gene_id.tsv -o cosmic_fusion_report_grch37/all_gene -i 10
 
-    python3 get_break_point_region2.py -f cosmic_fusion_report_grch37/all_gene/one_end_count.tsv -g gff_out/ENSEMBL_output.gff -t get_coord/trans_gene_id.tsv -o cosmic_fusion_report_grch37/test -i 10
+    python3 get_break_point_region2.py -f cosmic_fusion_report_grch37/all_gene/one_end_count.tsv -g gff_out/ENSEMBL_output_exon.gff -t get_coord/trans_gene_id.tsv -o cosmic_fusion_report_grch37/test -i 1
 """
 
 
@@ -115,17 +115,32 @@ def get_ensembl_ids(input_fusion_file, output_dir, counts_threhold):
     return fusion_counts_table
 
 
-def add_record(record, record_list, ei_num, fusion_id, bp_start, bp_end, part):
+def add_record(record, record_list, ei_num, fusion_id, bp_start, bp_end, partner):
     """
     add the record to the record_set, ei_num is the number of exon/intron in the record.
     """
-    record_list.append((record, ei_num, fusion_id, bp_start, bp_end, part))
+    record_list.append((record, ei_num, fusion_id, bp_start, bp_end, partner))
 
 
-def get_break_point_bed(fusion_id, ensembl_id, chrom, bp_start, bp_end, part, id_gff_dict, output_subtypes, output_gff_list):
+def get_break_point_bed(fusion_id, ensembl_id, chrom, bp_start, bp_end, partner, id_gff_dict, output_subtypes, output_gff_list):
     """
     get the break point gff record list
     """
+    def check_break_point(gff_record):
+        """
+        check if the break point is on the border of the gff_record
+        """
+        if (partner == 'five_partner' and gff_record.strand == '+') or (partner == 'three_partner' and gff_record.strand == '-'):
+            if (gff_record.type == 'exon' and int(gff_record.end) != bp_start) or (gff_record.type == 'intron' and int(gff_record.start) - 1 != bp_start):
+                print(f"The break point of fusion_id: {fusion_id}, {ensembl_id} is not on the border, check it again")
+                print(f'Break point is {bp_start}')
+                print(gff_record)
+        elif (partner == 'five_partner' and gff_record.strand == '-') or (partner == 'three_partner' and gff_record.strand == '+'):
+            if (gff_record.type == 'exon' and int(gff_record.start) != bp_end) or (gff_record.type == 'intron' and int(gff_record.end) + 1 != bp_end):
+                print(f"The break point of {fusion_id}, {ensembl_id} is not on the border, check it again")
+                print(f'Break point is {bp_end}')
+                print(gff_record)
+
     chrom_convert = {23:'X', 24:'Y'} # convert the chrom in cosmic record to the chrom in gff file
     if ensembl_id not in id_gff_dict:
         print(f"{fusion_id}, {ensembl_id} not in gff record!")
@@ -148,7 +163,7 @@ def get_break_point_bed(fusion_id, ensembl_id, chrom, bp_start, bp_end, part, id
         _s, _e = str(bp_start - 250), str(bp_end + 250)
         _atrb = f'Parent={gff_record.id};'
         _gff = GffRecord('\t'.join([gff_record.seqid, gff_record.source, "BreakPoint", _s, _e, gff_record.score, gff_record.strand, gff_record.phase, _atrb]), gff_record.source)
-        add_record(_gff, output_gff_list, 0, fusion_id, bp_start, bp_end, part)
+        add_record(_gff, output_gff_list, 0, fusion_id, bp_start, bp_end, partner)
      # break point is in the middle of some children, add the gffrecord of chilren to the output list
     exons, introns = 0, 0
     for gff_record in children_list:
@@ -161,13 +176,14 @@ def get_break_point_bed(fusion_id, ensembl_id, chrom, bp_start, bp_end, part, id
                 _num = introns
             else:
                 _num = exons
-            add_record(gff_record, output_gff_list, _num, fusion_id, bp_start, bp_end, part)
+            check_break_point(gff_record)
+            add_record(gff_record, output_gff_list, _num, fusion_id, bp_start, bp_end, partner)
     # break point is after the last child, add the 500bp seq around break point to the output list
     if int(children_list[-1].end) < bp_start:
         _s, _e = str(bp_start - 250), str(bp_end + 250)
         _atrb = f'Parent={gff_record.id};'
         _gff = GffRecord('\t'.join([gff_record.seqid, gff_record.source, "BreakPoint", _s, _e, gff_record.score, gff_record.strand, gff_record.phase, _atrb]), gff_record.source)
-        add_record(_gff, output_gff_list, -1, fusion_id, bp_start, bp_end, part)
+        add_record(_gff, output_gff_list, -1, fusion_id, bp_start, bp_end, partner)
 
 def get_break_point_region(fusion_table, id_gff_dict, break_point_fhand, extra_bp, output_subtypes):
     """
