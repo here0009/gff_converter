@@ -92,6 +92,12 @@ def get_args():
                 fusion_threshold=args.fusion_threshold
                 )
 
+def trimm_name(name):
+    """
+    trimm the ensemble name:
+    eg. ERG-202 => ERG
+    """
+    return name.split('-')[0]
 
 def get_ensembl_ids(input_fusion_file, output_dir, counts_threhold):
     """
@@ -158,32 +164,37 @@ def get_break_point_bed(fusion_id, ensembl_id, chrom, bp_start, bp_end, partner,
         print(f"{gff_record.id},{gff_record.name} have no children!")
         return
     children_list.sort(key=lambda x: int(x.start))
+
     # break point is before the 1st child, add the 500bp seq around break point to the output list
     if int(children_list[0].start) > bp_end:
         _s, _e = str(bp_start - 250), str(bp_end + 250)
         _atrb = f'Parent={gff_record.id};'
         _gff = GffRecord('\t'.join([gff_record.seqid, gff_record.source, "BreakPoint", _s, _e, gff_record.score, gff_record.strand, gff_record.phase, _atrb]), gff_record.source)
         add_record(_gff, output_gff_list, 0, fusion_id, bp_start, bp_end, partner)
-     # break point is in the middle of some children, add the gffrecord of chilren to the output list
-    exons, introns = 0, 0
-    for gff_record in children_list:
-        if gff_record.type == 'intron':
-            introns += 1
-        elif gff_record.type == 'exon':
-            exons += 1
-        if bp_start <= int(gff_record.start) <= bp_end or bp_start <= int(gff_record.end) <= bp_end:
-            if gff_record.type == 'intron':
-                _num = introns
-            else:
-                _num = exons
-            check_break_point(gff_record)
-            add_record(gff_record, output_gff_list, _num, fusion_id, bp_start, bp_end, partner)
     # break point is after the last child, add the 500bp seq around break point to the output list
     if int(children_list[-1].end) < bp_start:
         _s, _e = str(bp_start - 250), str(bp_end + 250)
         _atrb = f'Parent={gff_record.id};'
         _gff = GffRecord('\t'.join([gff_record.seqid, gff_record.source, "BreakPoint", _s, _e, gff_record.score, gff_record.strand, gff_record.phase, _atrb]), gff_record.source)
         add_record(_gff, output_gff_list, -1, fusion_id, bp_start, bp_end, partner)
+     # break point is in the middle of some children, add the gffrecord of chilren to the output list
+    exons, introns = 0, 0
+    if gff_record.strand == '-':  # reverse the child list to count exon and intron if the gene is on reverse strand
+        children_list = children_list[::-1] 
+    for child in children_list:
+        if child.type == 'intron':
+            introns += 1
+        elif child.type == 'exon':
+            exons += 1
+        if bp_start <= int(child.start) <= bp_end or bp_start <= int(child.end) <= bp_end:
+            if child.type == 'intron':
+                _num = introns
+            else:
+                _num = exons
+            check_break_point(child)
+            add_record(child, output_gff_list, _num, fusion_id, bp_start, bp_end, partner)
+
+
 
 def get_break_point_region(fusion_table, id_gff_dict, break_point_fhand, extra_bp, output_subtypes):
     """
@@ -211,7 +222,8 @@ def get_break_point_region(fusion_table, id_gff_dict, break_point_fhand, extra_b
         if not record.parent:
             print(record, ei_num, fusion_id, bp_start, bp_end, part)
             continue
-        name = id_gff_dict[record.parent].name
+        name = trimm_name(id_gff_dict[record.parent].name)
+        # name = id_gff_dict[record.parent].name
         bed_record = get_bed_record(record, name, extra_bp)
         _record = '\t'.join([bed_record, record.type, str(ei_num), str(fusion_id), str(bp_start), str(bp_end), part])
         break_point_fhand.write(_record + '\n')

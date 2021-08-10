@@ -114,6 +114,7 @@ def get_fusion_report(fusion_table, query_names, output_dir):
     two_ends_counts.to_csv(os.path.join(output_dir, 'two_ends_count.tsv'), sep = '\t', index = False, float_format = '{0:g}'.format)
     print(f"There are {two_ends_counts.shape[0]} two ends fusions")
 
+
 def main():
     PRIMARY_SITE = {'haematopoietic_and_lymphoid_tissue'}
     FUSION_TYPE = {'Observed mRNA'}
