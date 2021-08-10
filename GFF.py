@@ -6,7 +6,7 @@ Classes and Parameters for GFF conversion
 SELECTED_TYPES = {'mRNA', 'transcript', 'rRNA', 'tRNA'}  # col3 : col8 ID_type
 # SELECTED_SUB_TYPES = {'CDS', 'exon', 'five_prime_UTR', 'three_prime_UTR', 'intron', '5UTR', '3UTR'}
 SELECTED_SUB_TYPES = {'CDS', 'exon', 'five_prime_UTR', 'three_prime_UTR', 'intron'}
-WRITE_SUB_TYPES = {'CDS',  '5_UTR', '3_UTR', 'intron'}
+WRITE_SUB_TYPES = {'CDS',  '5_UTR', '3_UTR', 'intron', 'exon'}
 SELECTED_ATTRIBUTES = {'mRNA': ['ID', 'Name', 'Parent'], 'transcript': ['ID', 'Name', 'Parent'], 'CDS': ['Parent'], 'intron': ['Parent'], 'five_prime_UTR': ['Parent'], '5UTR': ['Parent'], '3UTR': ['Parent'], 'three_prime_UTR': ['Parent'], 'exon': ['Parent'], 'tRNA': ['ID', 'Name', 'Parent'], 'rRNA': ['ID', 'Name', 'Parent']}
 WRITE_ATTRIBUTES = {'mRNA': ['ID', 'Name'], 'transcript': ['ID', 'Name'], 'CDS': ['Parent'], 'intron': ['Parent'], 'five_prime_UTR': ['Parent'], 'three_prime_UTR': ['Parent'], '5UTR': ['Parent'], '3UTR': ['Parent'], 'exon': ['Parent'], 'rRNA': ['ID', 'Name'], 'tRNA': ['ID', 'Name']}
 # UCSC_WRITE_ATTRIBUTES = {'mRNA': ['ID', 'Name', 'transcript_id', 'gene_id'], 'transcript': ['ID', 'Name', 'transcript_id', 'gene_id'], 'CDS': ['Parent'], 'intron': ['Parent'], 'five_prime_UTR': ['Parent'], 'three_prime_UTR': ['Parent'], '5UTR': ['Parent'], '3UTR': ['Parent'], 'exon': ['Parent'], 'rRNA': ['ID', 'Name'], 'tRNA': ['ID', 'Name']}
